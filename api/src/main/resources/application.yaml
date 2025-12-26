@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: nestspend-api
+  profiles:
+    active: dev
+
+server:
+  port: 8080
