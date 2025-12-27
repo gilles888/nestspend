@@ -26,12 +26,48 @@ public class CategoryService {
     private final HouseholdRepository householdRepository;
     private final CurrentUserService currentUserService;
 
+    /**
+     * Default categories to be created for new households.
+     */
+    private static final List<DefaultCategory> DEFAULT_CATEGORIES = List.of(
+            new DefaultCategory("Alimentation", "#4CAF50", "restaurant"),
+            new DefaultCategory("Transport", "#2196F3", "directions_car"),
+            new DefaultCategory("Logement", "#FF9800", "home"),
+            new DefaultCategory("Santé", "#E91E63", "local_hospital"),
+            new DefaultCategory("Loisirs", "#9C27B0", "sports_esports"),
+            new DefaultCategory("Shopping", "#00BCD4", "shopping_bag"),
+            new DefaultCategory("Factures", "#607D8B", "receipt"),
+            new DefaultCategory("Éducation", "#3F51B5", "school"),
+            new DefaultCategory("Épargne", "#8BC34A", "savings"),
+            new DefaultCategory("Autres", "#9E9E9E", "category")
+    );
+
+    private record DefaultCategory(String name, String color, String icon) {}
+
     public CategoryService(CategoryRepository categoryRepository,
                            HouseholdRepository householdRepository,
                            CurrentUserService currentUserService) {
         this.categoryRepository = categoryRepository;
         this.householdRepository = householdRepository;
         this.currentUserService = currentUserService;
+    }
+
+    /**
+     * Create default categories for a new household.
+     *
+     * @param household the household to create categories for
+     */
+    @Transactional
+    public void createDefaultCategories(Household household) {
+        for (DefaultCategory defaultCategory : DEFAULT_CATEGORIES) {
+            Category category = Category.builder()
+                    .household(household)
+                    .name(defaultCategory.name())
+                    .color(defaultCategory.color())
+                    .icon(defaultCategory.icon())
+                    .build();
+            categoryRepository.save(category);
+        }
     }
 
     /**

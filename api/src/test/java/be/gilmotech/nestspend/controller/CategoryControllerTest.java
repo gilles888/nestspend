@@ -485,4 +485,37 @@ class CategoryControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(0)));
     }
+
+    @Test
+    void register_shouldCreateDefaultCategories() throws Exception {
+        // Register a new user (which creates a new household)
+        String registerRequest = """
+                {
+                    "email": "newuser@example.com",
+                    "password": "password123",
+                    "displayName": "New User",
+                    "householdName": "New Household"
+                }
+                """;
+
+        String response = mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(registerRequest))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String token = objectMapper.readTree(response).get("token").asText();
+
+        // Verify default categories were created
+        mockMvc.perform(get("/api/categories")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(10)))
+                .andExpect(jsonPath("$[*].name", containsInAnyOrder(
+                        "Alimentation", "Transport", "Logement", "Santé", "Loisirs",
+                        "Shopping", "Factures", "Éducation", "Épargne", "Autres"
+                )));
+    }
 }

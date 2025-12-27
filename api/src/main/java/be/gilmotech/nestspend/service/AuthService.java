@@ -22,13 +22,16 @@ public class AuthService {
     private final HouseholdRepository householdRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final CategoryService categoryService;
 
     public AuthService(UserRepository userRepository, HouseholdRepository householdRepository,
-                       PasswordEncoder passwordEncoder, JwtService jwtService) {
+                       PasswordEncoder passwordEncoder, JwtService jwtService,
+                       CategoryService categoryService) {
         this.userRepository = userRepository;
         this.householdRepository = householdRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.categoryService = categoryService;
     }
 
     @Transactional
@@ -41,6 +44,9 @@ public class AuthService {
                 .name(request.householdName())
                 .build();
         household = householdRepository.save(household);
+
+        // Create default categories for the new household
+        categoryService.createDefaultCategories(household);
 
         User user = User.builder()
                 .household(household)
