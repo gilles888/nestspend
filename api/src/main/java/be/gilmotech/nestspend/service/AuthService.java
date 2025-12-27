@@ -51,7 +51,7 @@ public class AuthService {
                 .build();
         user = userRepository.save(user);
 
-        String token = jwtService.generateToken(user.getId());
+        String token = jwtService.generateToken(user.getId(), household.getId(), user.getRole());
 
         return new AuthResponse(
                 token,
@@ -71,7 +71,7 @@ public class AuthService {
             throw new AuthenticationException("Invalid email or password");
         }
 
-        String token = jwtService.generateToken(user.getId());
+        String token = jwtService.generateToken(user.getId(), user.getHousehold().getId(), user.getRole());
 
         return new AuthResponse(
                 token,
