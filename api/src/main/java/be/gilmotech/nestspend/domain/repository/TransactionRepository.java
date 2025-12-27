@@ -25,6 +25,49 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     Optional<Transaction> findByIdAndHouseholdId(UUID id, UUID householdId);
 
     /**
+     * Sum of amount_cents for transactions of a given type in a household within a date range.
+     *
+     * @param householdId the household ID
+     * @param type        the transaction type (INCOME or EXPENSE)
+     * @param startDate   the start date (inclusive)
+     * @param endDate     the end date (inclusive)
+     * @return sum of amount_cents, or null if no transactions
+     */
+    @Query("SELECT COALESCE(SUM(t.amountCents), 0) FROM Transaction t " +
+           "WHERE t.household.id = :householdId " +
+           "AND t.type = :type " +
+           "AND t.txDate >= :startDate " +
+           "AND t.txDate <= :endDate")
+    Long sumAmountByHouseholdAndTypeAndDateRange(
+            @Param("householdId") UUID householdId,
+            @Param("type") TransactionType type,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
+    /**
+     * Sum of expense amounts grouped by category for a household within a date range.
+     *
+     * @param householdId the household ID
+     * @param startDate   the start date (inclusive)
+     * @param endDate     the end date (inclusive)
+     * @return list of Object arrays [categoryId, categoryName, sumAmountCents]
+     */
+    @Query("SELECT t.category.id, t.category.name, COALESCE(SUM(t.amountCents), 0) " +
+           "FROM Transaction t " +
+           "WHERE t.household.id = :householdId " +
+           "AND t.type = 'EXPENSE' " +
+           "AND t.txDate >= :startDate " +
+           "AND t.txDate <= :endDate " +
+           "GROUP BY t.category.id, t.category.name " +
+           "ORDER BY SUM(t.amountCents) DESC")
+    List<Object[]> sumExpensesByCategory(
+            @Param("householdId") UUID householdId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
+    /**
      * Find all transactions for a household with optional filters.
      * All filters are optional - if a filter parameter is null, it is ignored.
      *
