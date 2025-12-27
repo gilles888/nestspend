@@ -78,3 +78,9 @@ CREATE TABLE transactions (
 
 CREATE INDEX idx_tx_household_date
     ON transactions(household_id, tx_date);
+
+CREATE INDEX idx_tx_category
+    ON transactions(category_id);
+
+CREATE INDEX idx_tx_account
+    ON transactions(account_id);
