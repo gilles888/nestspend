@@ -4,8 +4,10 @@ import be.gilmotech.nestspend.domain.entity.Category;
 import be.gilmotech.nestspend.domain.entity.Household;
 import be.gilmotech.nestspend.domain.entity.User;
 import be.gilmotech.nestspend.domain.enums.UserRole;
+import be.gilmotech.nestspend.domain.repository.AccountRepository;
 import be.gilmotech.nestspend.domain.repository.CategoryRepository;
 import be.gilmotech.nestspend.domain.repository.HouseholdRepository;
+import be.gilmotech.nestspend.domain.repository.TransactionRepository;
 import be.gilmotech.nestspend.domain.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,10 +43,18 @@ class CategoryControllerTest {
     private CategoryRepository categoryRepository;
 
     @Autowired
+    private AccountRepository accountRepository;
+
+    @Autowired
+    private TransactionRepository transactionRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void setUp() {
+        transactionRepository.deleteAll();
+        accountRepository.deleteAll();
         categoryRepository.deleteAll();
         userRepository.deleteAll();
         householdRepository.deleteAll();
