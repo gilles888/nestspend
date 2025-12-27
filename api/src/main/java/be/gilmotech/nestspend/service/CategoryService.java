@@ -78,11 +78,8 @@ public class CategoryService {
             throw new ResourceConflictException("Category with this name already exists in household");
         }
 
-        Household household = householdRepository.findById(householdId)
-                .orElseThrow(() -> new ResourceNotFoundException("Household not found"));
-
         Category category = Category.builder()
-                .household(household)
+                .household(householdRepository.getReferenceById(householdId))
                 .name(request.name())
                 .color(request.color())
                 .icon(request.icon())
