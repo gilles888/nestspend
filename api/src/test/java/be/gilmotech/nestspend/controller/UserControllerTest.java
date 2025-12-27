@@ -3,6 +3,7 @@ package be.gilmotech.nestspend.controller;
 import be.gilmotech.nestspend.domain.entity.Household;
 import be.gilmotech.nestspend.domain.entity.User;
 import be.gilmotech.nestspend.domain.enums.UserRole;
+import be.gilmotech.nestspend.domain.repository.CategoryRepository;
 import be.gilmotech.nestspend.domain.repository.HouseholdRepository;
 import be.gilmotech.nestspend.domain.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,10 +39,14 @@ class UserControllerTest {
     private HouseholdRepository householdRepository;
 
     @Autowired
+    private CategoryRepository categoryRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void setUp() {
+        categoryRepository.deleteAll();
         userRepository.deleteAll();
         householdRepository.deleteAll();
     }
