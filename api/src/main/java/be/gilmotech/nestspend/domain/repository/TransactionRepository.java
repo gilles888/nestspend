@@ -49,6 +49,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
      * Sum of expense amounts grouped by category for a household within a date range.
      *
      * @param householdId the household ID
+     * @param type        the transaction type (should be EXPENSE)
      * @param startDate   the start date (inclusive)
      * @param endDate     the end date (inclusive)
      * @return list of Object arrays [categoryId, categoryName, sumAmountCents]
@@ -56,13 +57,14 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     @Query("SELECT t.category.id, t.category.name, COALESCE(SUM(t.amountCents), 0) " +
            "FROM Transaction t " +
            "WHERE t.household.id = :householdId " +
-           "AND t.type = 'EXPENSE' " +
+           "AND t.type = :type " +
            "AND t.txDate >= :startDate " +
            "AND t.txDate <= :endDate " +
            "GROUP BY t.category.id, t.category.name " +
            "ORDER BY SUM(t.amountCents) DESC")
     List<Object[]> sumExpensesByCategory(
             @Param("householdId") UUID householdId,
+            @Param("type") TransactionType type,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate
     );

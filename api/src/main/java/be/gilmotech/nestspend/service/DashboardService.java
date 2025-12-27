@@ -62,7 +62,7 @@ public class DashboardService {
 
         // Get expenses breakdown by category
         List<Object[]> expenseData = transactionRepository.sumExpensesByCategory(
-                householdId, startDate, endDate
+                householdId, TransactionType.EXPENSE, startDate, endDate
         );
         List<CategoryExpenseResponse> expensesByCategory = expenseData.stream()
                 .map(row -> new CategoryExpenseResponse(
