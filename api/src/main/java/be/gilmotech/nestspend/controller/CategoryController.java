@@ -5,6 +5,8 @@ import be.gilmotech.nestspend.dto.category.CategoryResponse;
 import be.gilmotech.nestspend.dto.category.CategoryUpdateRequest;
 import be.gilmotech.nestspend.service.CategoryService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -33,7 +35,8 @@ public class CategoryController {
     @Operation(summary = "Get all categories", description = "Returns all categories for the current user's household")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved categories"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token")
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token",
+                    content = @Content(schema = @Schema(hidden = true)))
     })
     public ResponseEntity<List<CategoryResponse>> getAllCategories() {
         List<CategoryResponse> categories = categoryService.getAllCategories();
@@ -44,8 +47,10 @@ public class CategoryController {
     @Operation(summary = "Get category by ID", description = "Returns a category by its ID for the current user's household")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved category"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token"),
-            @ApiResponse(responseCode = "404", description = "Not Found - Category not found or belongs to different household")
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token",
+                    content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "404", description = "Not Found - Category not found or belongs to different household",
+                    content = @Content(schema = @Schema(hidden = true)))
     })
     public ResponseEntity<CategoryResponse> getCategoryById(@PathVariable UUID id) {
         CategoryResponse category = categoryService.getCategoryById(id);
@@ -56,9 +61,12 @@ public class CategoryController {
     @Operation(summary = "Create a new category", description = "Creates a new category for the current user's household")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Successfully created category"),
-            @ApiResponse(responseCode = "400", description = "Validation error - Invalid input data"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token"),
-            @ApiResponse(responseCode = "409", description = "Conflict - Category with this name already exists in household")
+            @ApiResponse(responseCode = "400", description = "Validation error - Invalid input data",
+                    content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token",
+                    content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "409", description = "Conflict - Category with this name already exists in household",
+                    content = @Content(schema = @Schema(hidden = true)))
     })
     public ResponseEntity<CategoryResponse> createCategory(@Valid @RequestBody CategoryCreateRequest request) {
         CategoryResponse category = categoryService.createCategory(request);
@@ -69,10 +77,14 @@ public class CategoryController {
     @Operation(summary = "Update a category", description = "Updates an existing category for the current user's household")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully updated category"),
-            @ApiResponse(responseCode = "400", description = "Validation error - Invalid input data"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token"),
-            @ApiResponse(responseCode = "404", description = "Not Found - Category not found or belongs to different household"),
-            @ApiResponse(responseCode = "409", description = "Conflict - Category with this name already exists in household")
+            @ApiResponse(responseCode = "400", description = "Validation error - Invalid input data",
+                    content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token",
+                    content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "404", description = "Not Found - Category not found or belongs to different household",
+                    content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "409", description = "Conflict - Category with this name already exists in household",
+                    content = @Content(schema = @Schema(hidden = true)))
     })
     public ResponseEntity<CategoryResponse> updateCategory(
             @PathVariable UUID id,
@@ -85,8 +97,10 @@ public class CategoryController {
     @Operation(summary = "Delete a category", description = "Deletes a category for the current user's household")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Successfully deleted category"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token"),
-            @ApiResponse(responseCode = "404", description = "Not Found - Category not found or belongs to different household")
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token",
+                    content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "404", description = "Not Found - Category not found or belongs to different household",
+                    content = @Content(schema = @Schema(hidden = true)))
     })
     public ResponseEntity<Void> deleteCategory(@PathVariable UUID id) {
         categoryService.deleteCategory(id);

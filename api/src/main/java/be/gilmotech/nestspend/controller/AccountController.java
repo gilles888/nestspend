@@ -5,6 +5,8 @@ import be.gilmotech.nestspend.dto.account.AccountResponse;
 import be.gilmotech.nestspend.dto.account.AccountUpdateRequest;
 import be.gilmotech.nestspend.service.AccountService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -33,7 +35,8 @@ public class AccountController {
     @Operation(summary = "Get all accounts", description = "Returns all accounts for the current user's household")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved accounts"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token")
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token",
+                    content = @Content(schema = @Schema(hidden = true)))
     })
     public ResponseEntity<List<AccountResponse>> getAllAccounts() {
         List<AccountResponse> accounts = accountService.getAllAccounts();
@@ -44,8 +47,10 @@ public class AccountController {
     @Operation(summary = "Get account by ID", description = "Returns an account by its ID for the current user's household")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved account"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token"),
-            @ApiResponse(responseCode = "404", description = "Not Found - Account not found or belongs to different household")
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token",
+                    content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "404", description = "Not Found - Account not found or belongs to different household",
+                    content = @Content(schema = @Schema(hidden = true)))
     })
     public ResponseEntity<AccountResponse> getAccountById(@PathVariable UUID id) {
         AccountResponse account = accountService.getAccountById(id);
@@ -56,9 +61,12 @@ public class AccountController {
     @Operation(summary = "Create a new account", description = "Creates a new account for the current user's household")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Successfully created account"),
-            @ApiResponse(responseCode = "400", description = "Validation error - Invalid input data"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token"),
-            @ApiResponse(responseCode = "409", description = "Conflict - Account with this name already exists in household")
+            @ApiResponse(responseCode = "400", description = "Validation error - Invalid input data",
+                    content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token",
+                    content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "409", description = "Conflict - Account with this name already exists in household",
+                    content = @Content(schema = @Schema(hidden = true)))
     })
     public ResponseEntity<AccountResponse> createAccount(@Valid @RequestBody AccountCreateRequest request) {
         AccountResponse account = accountService.createAccount(request);
@@ -69,10 +77,14 @@ public class AccountController {
     @Operation(summary = "Update an account", description = "Updates an existing account for the current user's household")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully updated account"),
-            @ApiResponse(responseCode = "400", description = "Validation error - Invalid input data"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token"),
-            @ApiResponse(responseCode = "404", description = "Not Found - Account not found or belongs to different household"),
-            @ApiResponse(responseCode = "409", description = "Conflict - Account with this name already exists in household")
+            @ApiResponse(responseCode = "400", description = "Validation error - Invalid input data",
+                    content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token",
+                    content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "404", description = "Not Found - Account not found or belongs to different household",
+                    content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "409", description = "Conflict - Account with this name already exists in household",
+                    content = @Content(schema = @Schema(hidden = true)))
     })
     public ResponseEntity<AccountResponse> updateAccount(
             @PathVariable UUID id,
@@ -85,8 +97,10 @@ public class AccountController {
     @Operation(summary = "Delete an account", description = "Deletes an account for the current user's household")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Successfully deleted account"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token"),
-            @ApiResponse(responseCode = "404", description = "Not Found - Account not found or belongs to different household")
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token",
+                    content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "404", description = "Not Found - Account not found or belongs to different household",
+                    content = @Content(schema = @Schema(hidden = true)))
     })
     public ResponseEntity<Void> deleteAccount(@PathVariable UUID id) {
         accountService.deleteAccount(id);
