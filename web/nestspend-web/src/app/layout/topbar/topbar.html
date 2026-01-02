@@ -1,0 +1,30 @@
+<header class="flex items-center justify-between h-16 px-4 bg-surface border-b border-border">
+  <button
+    class="lg:hidden flex items-center justify-center w-10 h-10 rounded-xl text-text-muted hover:bg-primary-soft hover:text-primary transition-colors"
+    (click)="onMenuToggle()"
+    aria-label="Toggle menu"
+  >
+    <i class="pi pi-bars text-xl"></i>
+  </button>
+
+  <div class="lg:hidden text-lg font-bold text-primary">NestSpend</div>
+
+  <div class="hidden lg:block text-lg font-semibold text-text-main">
+    Welcome to NestSpend
+  </div>
+
+  <div class="flex items-center gap-2">
+    <button
+      class="flex items-center justify-center w-10 h-10 rounded-xl text-text-muted hover:bg-primary-soft hover:text-primary transition-colors"
+      aria-label="Notifications"
+    >
+      <i class="pi pi-bell text-xl"></i>
+    </button>
+    <button
+      class="flex items-center justify-center w-10 h-10 rounded-xl text-text-muted hover:bg-primary-soft hover:text-primary transition-colors"
+      aria-label="User profile"
+    >
+      <i class="pi pi-user text-xl"></i>
+    </button>
+  </div>
+</header>
