@@ -1,0 +1,35 @@
+<div class="flex h-screen bg-background">
+  <!-- Desktop Sidebar -->
+  <aside class="hidden lg:flex lg:flex-col lg:w-72 bg-surface border-r border-border/50 shadow-soft">
+    <app-sidebar />
+  </aside>
+
+  <!-- Mobile Drawer Overlay -->
+  @if (isMobileMenuOpen()) {
+    <div
+      class="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden transition-opacity duration-300"
+      (click)="closeMobileMenu()"
+      (keydown.escape)="closeMobileMenu()"
+      tabindex="0"
+      role="button"
+      aria-label="Close menu"
+    ></div>
+  }
+
+  <!-- Mobile Drawer -->
+  <aside
+    class="fixed inset-y-0 left-0 z-50 w-72 bg-surface shadow-elevated transform transition-transform duration-300 ease-out lg:hidden"
+    [class.translate-x-0]="isMobileMenuOpen()"
+    [class.-translate-x-full]="!isMobileMenuOpen()"
+  >
+    <app-sidebar (navItemClicked)="closeMobileMenu()" />
+  </aside>
+
+  <!-- Main Content -->
+  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <app-topbar (menuToggle)="toggleMobileMenu()" />
+    <main class="flex-1 overflow-auto p-4 lg:p-8 bg-gradient-to-br from-background via-background to-primary-soft/20">
+      <router-outlet />
+    </main>
+  </div>
+</div>

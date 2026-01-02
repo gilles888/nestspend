@@ -1,0 +1,61 @@
+<header class="flex items-center justify-between h-16 px-4 lg:px-6 bg-surface/80 backdrop-blur-lg border-b border-border/50 sticky top-0 z-30">
+  <!-- Mobile Menu Button -->
+  <button
+    class="lg:hidden flex items-center justify-center w-10 h-10 rounded-xl text-text-muted hover:bg-primary-soft hover:text-primary transition-all duration-200"
+    (click)="onMenuToggle()"
+    aria-label="Toggle menu"
+  >
+    <i class="pi pi-bars text-xl"></i>
+  </button>
+
+  <!-- Mobile Logo -->
+  <div class="lg:hidden flex items-center gap-2">
+    <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary-dark">
+      <i class="pi pi-wallet text-white text-sm"></i>
+    </div>
+    <span class="text-lg font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">NestSpend</span>
+  </div>
+
+  <!-- Desktop Welcome / Breadcrumb -->
+  <div class="hidden lg:flex items-center gap-4">
+    <div class="flex items-center gap-2 text-sm">
+      <i class="pi pi-home text-text-muted"></i>
+      <span class="text-text-muted">/</span>
+      <span class="font-medium text-text-main">Dashboard</span>
+    </div>
+  </div>
+
+  <!-- Right Actions -->
+  <div class="flex items-center gap-2">
+    <!-- Search (Desktop) -->
+    <div class="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl">
+      <i class="pi pi-search text-text-muted text-sm"></i>
+      <input 
+        type="text" 
+        placeholder="Search..." 
+        class="bg-transparent border-none outline-none text-sm w-40 placeholder:text-text-muted"
+      />
+      <kbd class="hidden lg:inline-flex items-center px-2 py-0.5 text-xs text-text-muted bg-white rounded border border-border">⌘K</kbd>
+    </div>
+
+    <!-- Notifications -->
+    <button
+      class="relative flex items-center justify-center w-10 h-10 rounded-xl text-text-muted hover:bg-primary-soft hover:text-primary transition-all duration-200"
+      aria-label="Notifications"
+    >
+      <i class="pi pi-bell text-lg"></i>
+      <span class="absolute top-2 right-2 w-2 h-2 bg-danger rounded-full ring-2 ring-surface"></span>
+    </button>
+
+    <!-- User Profile -->
+    <button
+      class="flex items-center gap-2 p-1.5 pr-3 rounded-xl hover:bg-slate-100 transition-all duration-200"
+      aria-label="User profile"
+    >
+      <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent text-white text-sm font-semibold">
+        U
+      </div>
+      <i class="pi pi-chevron-down text-xs text-text-muted hidden sm:block"></i>
+    </button>
+  </div>
+</header>
