@@ -9,7 +9,7 @@ import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
 
 import { AuthenticationService } from '../../core/api/services/authentication.service';
-import { AuthService } from '../../core/auth/auth.service';
+import { AuthService, isHttpError } from '../../core/auth/auth.service';
 import { LoginRequest } from '../../core/api/models/login-request';
 
 @Component({
@@ -55,9 +55,11 @@ export class LoginComponent {
       };
 
       const response = await this.authenticationService.login({ body: loginRequest });
-      this.authService.handleAuthResponse(response);
+      if (!this.authService.handleAuthResponse(response)) {
+        this.errorMessage.set('Authentication failed. Please try again.');
+      }
     } catch (error: unknown) {
-      if (this.isHttpError(error) && error.status === 401) {
+      if (isHttpError(error) && error.status === 401) {
         this.errorMessage.set('Invalid email or password.');
       } else {
         this.errorMessage.set('An error occurred. Please try again.');
@@ -65,9 +67,5 @@ export class LoginComponent {
     } finally {
       this.loading.set(false);
     }
-  }
-
-  private isHttpError(error: unknown): error is { status: number } {
-    return typeof error === 'object' && error !== null && 'status' in error;
   }
 }

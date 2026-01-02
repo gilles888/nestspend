@@ -5,6 +5,10 @@ import { AuthResponse } from '../api/models/auth-response';
 const TOKEN_KEY = 'nestspend_token';
 const USER_KEY = 'nestspend_user';
 
+export function isHttpError(error: unknown): error is { status: number } {
+  return typeof error === 'object' && error !== null && 'status' in error;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private isAuthenticatedSignal = signal(this.hasStoredToken());
@@ -26,13 +30,15 @@ export class AuthService {
     return user ? JSON.parse(user) : null;
   }
 
-  handleAuthResponse(response: AuthResponse): void {
-    if (response.token) {
-      localStorage.setItem(TOKEN_KEY, response.token);
-      localStorage.setItem(USER_KEY, JSON.stringify(response));
-      this.isAuthenticatedSignal.set(true);
-      this.router.navigate(['/dashboard']);
+  handleAuthResponse(response: AuthResponse): boolean {
+    if (!response.token) {
+      return false;
     }
+    localStorage.setItem(TOKEN_KEY, response.token);
+    localStorage.setItem(USER_KEY, JSON.stringify(response));
+    this.isAuthenticatedSignal.set(true);
+    this.router.navigate(['/dashboard']);
+    return true;
   }
 
   logout(): void {

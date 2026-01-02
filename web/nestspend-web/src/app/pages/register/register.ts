@@ -9,7 +9,7 @@ import { ButtonModule } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
 
 import { AuthenticationService } from '../../core/api/services/authentication.service';
-import { AuthService } from '../../core/auth/auth.service';
+import { AuthService, isHttpError } from '../../core/auth/auth.service';
 import { RegisterRequest } from '../../core/api/models/register-request';
 
 @Component({
@@ -64,11 +64,13 @@ export class RegisterComponent {
       };
 
       const response = await this.authenticationService.register({ body: registerRequest });
-      this.authService.handleAuthResponse(response);
+      if (!this.authService.handleAuthResponse(response)) {
+        this.errorMessage.set('Registration failed. Please try again.');
+      }
     } catch (error: unknown) {
-      if (this.isHttpError(error) && error.status === 409) {
+      if (isHttpError(error) && error.status === 409) {
         this.errorMessage.set('This email is already registered.');
-      } else if (this.isHttpError(error) && error.status === 400) {
+      } else if (isHttpError(error) && error.status === 400) {
         this.errorMessage.set('Please check your input and try again.');
       } else {
         this.errorMessage.set('An error occurred. Please try again.');
@@ -76,9 +78,5 @@ export class RegisterComponent {
     } finally {
       this.loading.set(false);
     }
-  }
-
-  private isHttpError(error: unknown): error is { status: number } {
-    return typeof error === 'object' && error !== null && 'status' in error;
   }
 }
