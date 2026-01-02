@@ -1,0 +1,33 @@
+/* =========================
+   Sass modules (TOUJOURS en premier)
+   ========================= */
+@use "./styles/variables" as *;
+@use "./styles/primeng-overrides";
+
+/* =========================
+   TailwindCSS
+   ========================= */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================
+   Prime icons (CSS import OK)
+   ========================= */
+@import "primeicons/primeicons.css";
+
+/* =========================
+   Global styles
+   ========================= */
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+  "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: theme("colors.background");
+  color: theme("colors.text.main");
+}

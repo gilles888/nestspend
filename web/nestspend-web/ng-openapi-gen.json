@@ -1,0 +1,8 @@
+{
+  "input": "openapi.json",
+  "output": "src/app/core/api",
+  "enumStyle": "enum",
+  "services": true,
+  "usePromises": true,
+  "removeUnusedComponents": true
+}
