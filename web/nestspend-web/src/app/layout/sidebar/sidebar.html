@@ -1,21 +1,53 @@
-<nav class="flex flex-col h-full">
-  <div class="p-4 border-b border-border">
-    <h1 class="text-xl font-bold text-primary">NestSpend</h1>
+<nav class="flex flex-col h-full bg-gradient-to-b from-surface to-slate-50">
+  <!-- Logo Section -->
+  <div class="p-6 border-b border-border/50">
+    <div class="flex items-center gap-3">
+      <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary-dark shadow-elevated">
+        <i class="pi pi-wallet text-white text-lg"></i>
+      </div>
+      <div>
+        <h1 class="text-xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">NestSpend</h1>
+        <p class="text-xs text-text-muted">Finance Manager</p>
+      </div>
+    </div>
   </div>
-  <ul class="flex-1 p-4 space-y-2">
-    @for (item of navItems; track item.route) {
-      <li>
-        <a
-          [routerLink]="item.route"
-          routerLinkActive="bg-primary-soft text-primary"
-          [routerLinkActiveOptions]="{ exact: item.route === '/dashboard' }"
-          class="flex items-center gap-3 px-4 py-3 rounded-xl text-text-muted hover:bg-primary-soft hover:text-primary transition-colors"
-          (click)="onNavItemClick()"
-        >
-          <i [class]="item.icon"></i>
-          <span>{{ item.label }}</span>
-        </a>
-      </li>
-    }
-  </ul>
+
+  <!-- Navigation -->
+  <div class="flex-1 px-4 py-6">
+    <p class="px-4 mb-3 text-xs font-semibold uppercase tracking-wider text-text-muted/70">Menu</p>
+    <ul class="space-y-1">
+      @for (item of navItems; track item.route) {
+        <li>
+          <a
+            [routerLink]="item.route"
+            routerLinkActive="bg-primary text-white shadow-elevated"
+            [routerLinkActiveOptions]="{ exact: item.route === '/dashboard' }"
+            class="group flex items-center gap-3 px-4 py-3 rounded-xl text-text-muted font-medium hover:bg-primary-soft hover:text-primary transition-all duration-200"
+            (click)="onNavItemClick()"
+          >
+            <div class="flex items-center justify-center w-9 h-9 rounded-lg bg-slate-100 group-hover:bg-primary-soft group-[.bg-primary]:bg-white/20 transition-colors">
+              <i [class]="item.icon + ' text-base group-[.bg-primary]:text-white'"></i>
+            </div>
+            <span>{{ item.label }}</span>
+          </a>
+        </li>
+      }
+    </ul>
+  </div>
+
+  <!-- Footer -->
+  <div class="p-4 border-t border-border/50">
+    <div class="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-primary-soft to-accent-soft">
+      <div class="flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-card">
+        <i class="pi pi-user text-primary"></i>
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-semibold text-text-main truncate">User</p>
+        <p class="text-xs text-text-muted truncate">Free Plan</p>
+      </div>
+      <button class="p-2 rounded-lg hover:bg-white/50 transition-colors" aria-label="Settings">
+        <i class="pi pi-cog text-text-muted"></i>
+      </button>
+    </div>
+  </div>
 </nav>
