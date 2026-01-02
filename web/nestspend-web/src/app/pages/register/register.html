@@ -1,0 +1,102 @@
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary-soft/20 p-4">
+  <div class="w-full max-w-md">
+    <!-- Logo Section -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary-dark shadow-elevated mb-4">
+        <i class="pi pi-wallet text-white text-2xl"></i>
+      </div>
+      <h1 class="text-3xl font-bold bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent">
+        NestSpend
+      </h1>
+      <p class="text-text-muted mt-2">Create your account to get started.</p>
+    </div>
+
+    <!-- Register Form Card -->
+    <div class="bg-surface rounded-2xl shadow-elevated border border-border/50 p-8">
+      <form (ngSubmit)="onSubmit()" #registerForm="ngForm">
+        <!-- Error Message -->
+        @if (errorMessage()) {
+          <p-message severity="error" [text]="errorMessage()!" styleClass="w-full mb-6" />
+        }
+
+        <!-- Display Name Field -->
+        <div class="mb-5">
+          <label for="displayName" class="block text-sm font-medium text-text-main mb-2">Display Name</label>
+          <input
+            pInputText
+            id="displayName"
+            type="text"
+            [(ngModel)]="displayName"
+            name="displayName"
+            placeholder="Enter your name"
+            class="w-full"
+            required
+          />
+        </div>
+
+        <!-- Household Name Field -->
+        <div class="mb-5">
+          <label for="householdName" class="block text-sm font-medium text-text-main mb-2">Household Name</label>
+          <input
+            pInputText
+            id="householdName"
+            type="text"
+            [(ngModel)]="householdName"
+            name="householdName"
+            placeholder="e.g., The Smith Family"
+            class="w-full"
+            required
+          />
+        </div>
+
+        <!-- Email Field -->
+        <div class="mb-5">
+          <label for="email" class="block text-sm font-medium text-text-main mb-2">Email</label>
+          <input
+            pInputText
+            id="email"
+            type="email"
+            [(ngModel)]="email"
+            name="email"
+            placeholder="Enter your email"
+            class="w-full"
+            required
+          />
+        </div>
+
+        <!-- Password Field -->
+        <div class="mb-6">
+          <label for="password" class="block text-sm font-medium text-text-main mb-2">Password</label>
+          <p-password
+            id="password"
+            [(ngModel)]="password"
+            name="password"
+            placeholder="Minimum 8 characters"
+            [toggleMask]="true"
+            [feedback]="false"
+            styleClass="w-full"
+            inputStyleClass="w-full"
+            required
+          />
+        </div>
+
+        <!-- Submit Button -->
+        <p-button
+          type="submit"
+          label="Create Account"
+          [loading]="loading()"
+          styleClass="w-full"
+          severity="primary"
+        />
+      </form>
+
+      <!-- Login Link -->
+      <div class="mt-6 text-center">
+        <p class="text-text-muted">
+          Already have an account?
+          <a routerLink="/login" class="text-primary font-medium hover:underline">Sign in</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
