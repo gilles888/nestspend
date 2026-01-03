@@ -78,7 +78,7 @@ export class DashboardComponent implements OnInit {
       this.dashboardData.set(data);
       this.expensesByCategory.set(data.expensesByCategory ?? []);
     } catch (error) {
-      this.errorMessage.set('Failed to load dashboard data');
+      this.errorMessage.set('dashboard.loadError');
       console.error('Dashboard load error:', error);
     } finally {
       this.loading.set(false);

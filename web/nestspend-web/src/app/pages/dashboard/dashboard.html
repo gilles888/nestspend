@@ -29,7 +29,7 @@
   @if (errorMessage()) {
     <div class="bg-red-100 dark:bg-red-900/30 border border-danger rounded-xl p-4 text-danger">
       <i class="pi pi-exclamation-triangle mr-2"></i>
-      {{ errorMessage() }}
+      {{ errorMessage() | translate }}
     </div>
   }
 
@@ -89,13 +89,6 @@
             <tr>
               <td class="text-text-main dark:text-dark-text-main">{{ expense.categoryName }}</td>
               <td class="text-right font-semibold text-danger">{{ formatCentsToAmount(expense.amountCents) | currency }}</td>
-            </tr>
-          </ng-template>
-          <ng-template #emptymessage>
-            <tr>
-              <td colspan="2" class="text-center py-8 text-text-muted dark:text-dark-text-muted">
-                {{ 'dashboard.noExpenses' | translate }}
-              </td>
             </tr>
           </ng-template>
         </p-table>

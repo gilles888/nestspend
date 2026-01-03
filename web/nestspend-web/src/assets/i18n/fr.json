@@ -32,6 +32,7 @@
     "category": "Catégorie",
     "amount": "Montant",
     "noExpenses": "Aucune dépense pour ce mois",
+    "loadError": "Échec du chargement des données du tableau de bord",
     "recentTransactions": "Transactions récentes",
     "viewAll": "Voir tout",
     "quickActions": "Actions rapides",

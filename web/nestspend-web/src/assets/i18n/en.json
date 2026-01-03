@@ -32,6 +32,7 @@
     "category": "Category",
     "amount": "Amount",
     "noExpenses": "No expenses for this month",
+    "loadError": "Failed to load dashboard data",
     "recentTransactions": "Recent Transactions",
     "viewAll": "View All",
     "quickActions": "Quick Actions",
