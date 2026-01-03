@@ -1,7 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -71,18 +71,13 @@ export class TransactionsComponent implements OnInit {
   // Form
   transactionForm!: FormGroup;
 
-  // Options
-  typeOptions = [
-    { label: 'Expense', value: 'EXPENSE', labelKey: 'transactions.expense' },
-    { label: 'Income', value: 'INCOME', labelKey: 'transactions.income' },
-  ];
-
   constructor(
     private transactionsService: TransactionsService,
     private categoriesService: CategoriesService,
     private accountsService: AccountsService,
     private confirmationService: ConfirmationService,
     private messageService: MessageService,
+    private translateService: TranslateService,
     private fb: FormBuilder
   ) {
     this.initForm();
@@ -168,12 +163,12 @@ export class TransactionsComponent implements OnInit {
     }
   }
 
-  clearFilters(): void {
+  async clearFilters(): Promise<void> {
     this.filterFrom.set(null);
     this.filterTo.set(null);
     this.filterType.set(null);
     this.filterCategoryId.set(null);
-    this.applyFilters();
+    await this.applyFilters();
   }
 
   openAddDialog(): void {
@@ -324,7 +319,7 @@ export class TransactionsComponent implements OnInit {
 
   getFilterCategoryOptions(): { label: string; value: string | null }[] {
     return [
-      { label: 'All Categories', value: null },
+      { label: this.translateService.instant('transactions.allCategories'), value: null },
       ...this.categories().map((c) => ({
         label: c.name ?? '',
         value: c.id ?? '',
@@ -334,9 +329,16 @@ export class TransactionsComponent implements OnInit {
 
   getFilterTypeOptions(): { label: string; value: string | null }[] {
     return [
-      { label: 'All Types', value: null },
-      { label: 'Expense', value: 'EXPENSE' },
-      { label: 'Income', value: 'INCOME' },
+      { label: this.translateService.instant('transactions.allTypes'), value: null },
+      { label: this.translateService.instant('transactions.expense'), value: 'EXPENSE' },
+      { label: this.translateService.instant('transactions.income'), value: 'INCOME' },
+    ];
+  }
+
+  getTypeOptions(): { label: string; value: string }[] {
+    return [
+      { label: this.translateService.instant('transactions.expense'), value: 'EXPENSE' },
+      { label: this.translateService.instant('transactions.income'), value: 'INCOME' },
     ];
   }
 }

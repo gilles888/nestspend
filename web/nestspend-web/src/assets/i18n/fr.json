@@ -60,6 +60,8 @@
     "actions": "Actions",
     "expense": "Dépense",
     "income": "Revenu",
+    "allTypes": "Tous les types",
+    "allCategories": "Toutes les catégories",
     "applyFilters": "Appliquer",
     "clearFilters": "Effacer",
     "edit": "Modifier",
