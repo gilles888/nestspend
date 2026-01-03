@@ -10,3 +10,5 @@ Gérer les catégories de dépenses/revenus.
 
 ## DoD
 - CRUD catégories OK
+
+- généré par défault une liste possible de catégorie
