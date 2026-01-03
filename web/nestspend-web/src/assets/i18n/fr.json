@@ -1,0 +1,42 @@
+{
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "transactions": "Transactions",
+    "categories": "Catégories",
+    "accounts": "Comptes",
+    "menu": "Menu"
+  },
+  "common": {
+    "search": "Rechercher...",
+    "logout": "Déconnexion",
+    "notifications": "Notifications",
+    "profile": "Profil utilisateur",
+    "toggleMenu": "Basculer le menu",
+    "financeManager": "Gestionnaire de finances",
+    "freePlan": "Plan gratuit"
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "welcome": "Bon retour ! Voici votre aperçu financier.",
+    "newTransaction": "Nouvelle transaction",
+    "totalBalance": "Solde total",
+    "income": "Revenus",
+    "expenses": "Dépenses",
+    "savings": "Épargne",
+    "recentTransactions": "Transactions récentes",
+    "viewAll": "Voir tout",
+    "quickActions": "Actions rapides",
+    "addTransaction": "Ajouter une transaction",
+    "manageCategories": "Gérer les catégories",
+    "viewReports": "Voir les rapports"
+  },
+  "theme": {
+    "toggleDark": "Activer le mode sombre",
+    "toggleLight": "Activer le mode clair"
+  },
+  "language": {
+    "select": "Sélectionner la langue",
+    "fr": "Français",
+    "en": "English"
+  }
+}

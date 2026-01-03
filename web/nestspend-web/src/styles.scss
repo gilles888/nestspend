@@ -31,3 +31,11 @@ body {
   background-color: theme("colors.background");
   color: theme("colors.text.main");
 }
+
+/* =========================
+   Dark mode styles
+   ========================= */
+html.dark body {
+  background-color: theme("colors.dark-background");
+  color: theme("colors.dark-text.main");
+}

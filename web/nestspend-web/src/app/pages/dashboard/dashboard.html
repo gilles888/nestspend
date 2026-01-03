@@ -2,90 +2,90 @@
   <!-- Header -->
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
     <div>
-      <h1 class="text-2xl lg:text-3xl font-bold text-text-main">Dashboard</h1>
-      <p class="text-text-muted mt-1">Welcome back! Here's your financial overview.</p>
+      <h1 class="text-2xl lg:text-3xl font-bold text-text-main dark:text-dark-text-main">{{ 'dashboard.title' | translate }}</h1>
+      <p class="text-text-muted dark:text-dark-text-muted mt-1">{{ 'dashboard.welcome' | translate }}</p>
     </div>
-    <button class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-dark text-white font-medium rounded-xl shadow-elevated hover:shadow-lg hover:scale-[1.02] transition-all duration-200">
+    <button class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-dark text-white font-medium rounded-xl shadow-elevated dark:shadow-dark-elevated hover:shadow-lg hover:scale-[1.02] transition-all duration-200">
       <i class="pi pi-plus"></i>
-      <span>New Transaction</span>
+      <span>{{ 'dashboard.newTransaction' | translate }}</span>
     </button>
   </div>
 
   <!-- Stats Cards -->
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
     <!-- Total Balance -->
-    <div class="group bg-gradient-to-br from-primary to-primary-dark p-6 rounded-2xl shadow-elevated text-white">
+    <div class="group bg-gradient-to-br from-primary to-primary-dark p-6 rounded-2xl shadow-elevated dark:shadow-dark-elevated text-white">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-white/20">
           <i class="pi pi-wallet text-xl"></i>
         </div>
         <span class="text-xs font-medium px-2 py-1 bg-white/20 rounded-full">+12.5%</span>
       </div>
-      <p class="text-white/80 text-sm font-medium">Total Balance</p>
+      <p class="text-white/80 text-sm font-medium">{{ 'dashboard.totalBalance' | translate }}</p>
       <p class="text-2xl lg:text-3xl font-bold mt-1">$24,563.00</p>
     </div>
 
     <!-- Income -->
-    <div class="group bg-surface p-6 rounded-2xl shadow-card border border-border/50 hover:shadow-soft hover:border-success/30 transition-all duration-200">
+    <div class="group bg-surface dark:bg-dark-surface p-6 rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 hover:shadow-soft dark:hover:shadow-dark-soft hover:border-success/30 transition-all duration-200">
       <div class="flex items-center justify-between mb-4">
-        <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-100 text-success">
+        <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-success">
           <i class="pi pi-arrow-down-left text-xl"></i>
         </div>
-        <span class="text-xs font-medium px-2 py-1 bg-emerald-100 text-success rounded-full">+8.2%</span>
+        <span class="text-xs font-medium px-2 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-success rounded-full">+8.2%</span>
       </div>
-      <p class="text-text-muted text-sm font-medium">Income</p>
-      <p class="text-2xl font-bold text-text-main mt-1">$8,350.00</p>
+      <p class="text-text-muted dark:text-dark-text-muted text-sm font-medium">{{ 'dashboard.income' | translate }}</p>
+      <p class="text-2xl font-bold text-text-main dark:text-dark-text-main mt-1">$8,350.00</p>
     </div>
 
     <!-- Expenses -->
-    <div class="group bg-surface p-6 rounded-2xl shadow-card border border-border/50 hover:shadow-soft hover:border-danger/30 transition-all duration-200">
+    <div class="group bg-surface dark:bg-dark-surface p-6 rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 hover:shadow-soft dark:hover:shadow-dark-soft hover:border-danger/30 transition-all duration-200">
       <div class="flex items-center justify-between mb-4">
-        <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-red-100 text-danger">
+        <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/30 text-danger">
           <i class="pi pi-arrow-up-right text-xl"></i>
         </div>
-        <span class="text-xs font-medium px-2 py-1 bg-red-100 text-danger rounded-full">-3.1%</span>
+        <span class="text-xs font-medium px-2 py-1 bg-red-100 dark:bg-red-900/30 text-danger rounded-full">-3.1%</span>
       </div>
-      <p class="text-text-muted text-sm font-medium">Expenses</p>
-      <p class="text-2xl font-bold text-text-main mt-1">$3,280.00</p>
+      <p class="text-text-muted dark:text-dark-text-muted text-sm font-medium">{{ 'dashboard.expenses' | translate }}</p>
+      <p class="text-2xl font-bold text-text-main dark:text-dark-text-main mt-1">$3,280.00</p>
     </div>
 
     <!-- Savings -->
-    <div class="group bg-surface p-6 rounded-2xl shadow-card border border-border/50 hover:shadow-soft hover:border-accent/30 transition-all duration-200">
+    <div class="group bg-surface dark:bg-dark-surface p-6 rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 hover:shadow-soft dark:hover:shadow-dark-soft hover:border-accent/30 transition-all duration-200">
       <div class="flex items-center justify-between mb-4">
-        <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-accent-soft text-accent">
+        <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-accent-soft dark:bg-accent/20 text-accent">
           <i class="pi pi-chart-line text-xl"></i>
         </div>
-        <span class="text-xs font-medium px-2 py-1 bg-accent-soft text-accent rounded-full">+15.3%</span>
+        <span class="text-xs font-medium px-2 py-1 bg-accent-soft dark:bg-accent/20 text-accent rounded-full">+15.3%</span>
       </div>
-      <p class="text-text-muted text-sm font-medium">Savings</p>
-      <p class="text-2xl font-bold text-text-main mt-1">$5,070.00</p>
+      <p class="text-text-muted dark:text-dark-text-muted text-sm font-medium">{{ 'dashboard.savings' | translate }}</p>
+      <p class="text-2xl font-bold text-text-main dark:text-dark-text-main mt-1">$5,070.00</p>
     </div>
   </div>
 
   <!-- Content Grid -->
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <!-- Recent Transactions -->
-    <div class="lg:col-span-2 bg-surface rounded-2xl shadow-card border border-border/50 overflow-hidden">
-      <div class="flex items-center justify-between p-6 border-b border-border/50">
-        <h2 class="text-lg font-semibold text-text-main">Recent Transactions</h2>
-        <button class="text-sm text-primary font-medium hover:underline">View All</button>
+    <div class="lg:col-span-2 bg-surface dark:bg-dark-surface rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 overflow-hidden">
+      <div class="flex items-center justify-between p-6 border-b border-border/50 dark:border-dark-border/50">
+        <h2 class="text-lg font-semibold text-text-main dark:text-dark-text-main">{{ 'dashboard.recentTransactions' | translate }}</h2>
+        <button class="text-sm text-primary font-medium hover:underline">{{ 'dashboard.viewAll' | translate }}</button>
       </div>
-      <div class="divide-y divide-border/50">
+      <div class="divide-y divide-border/50 dark:divide-dark-border/50">
         @for (transaction of [
-          { name: 'Grocery Store', category: 'Food', amount: -85.50, icon: 'pi-shopping-cart', color: 'bg-amber-100 text-amber-600' },
-          { name: 'Salary Deposit', category: 'Income', amount: 3500.00, icon: 'pi-building', color: 'bg-emerald-100 text-success' },
-          { name: 'Netflix Subscription', category: 'Entertainment', amount: -15.99, icon: 'pi-play', color: 'bg-red-100 text-danger' },
-          { name: 'Freelance Payment', category: 'Income', amount: 850.00, icon: 'pi-briefcase', color: 'bg-emerald-100 text-success' }
+          { name: 'Grocery Store', category: 'Food', amount: -85.50, icon: 'pi-shopping-cart', color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' },
+          { name: 'Salary Deposit', category: 'Income', amount: 3500.00, icon: 'pi-building', color: 'bg-emerald-100 dark:bg-emerald-900/30 text-success' },
+          { name: 'Netflix Subscription', category: 'Entertainment', amount: -15.99, icon: 'pi-play', color: 'bg-red-100 dark:bg-red-900/30 text-danger' },
+          { name: 'Freelance Payment', category: 'Income', amount: 850.00, icon: 'pi-briefcase', color: 'bg-emerald-100 dark:bg-emerald-900/30 text-success' }
         ]; track transaction.name) {
-          <div class="flex items-center gap-4 p-4 hover:bg-slate-50 transition-colors">
+          <div class="flex items-center gap-4 p-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
             <div class="flex items-center justify-center w-10 h-10 rounded-xl {{ transaction.color }}">
               <i class="pi {{ transaction.icon }}"></i>
             </div>
             <div class="flex-1 min-w-0">
-              <p class="font-medium text-text-main truncate">{{ transaction.name }}</p>
-              <p class="text-sm text-text-muted">{{ transaction.category }}</p>
+              <p class="font-medium text-text-main dark:text-dark-text-main truncate">{{ transaction.name }}</p>
+              <p class="text-sm text-text-muted dark:text-dark-text-muted">{{ transaction.category }}</p>
             </div>
-            <p class="font-semibold {{ transaction.amount > 0 ? 'text-success' : 'text-text-main' }}">
+            <p class="font-semibold {{ transaction.amount > 0 ? 'text-success' : 'text-text-main dark:text-dark-text-main' }}">
               {{ transaction.amount > 0 ? '+' : '' }}{{ transaction.amount | currency }}
             </p>
           </div>
@@ -94,26 +94,26 @@
     </div>
 
     <!-- Quick Actions -->
-    <div class="bg-surface rounded-2xl shadow-card border border-border/50 p-6">
-      <h2 class="text-lg font-semibold text-text-main mb-4">Quick Actions</h2>
+    <div class="bg-surface dark:bg-dark-surface rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 p-6">
+      <h2 class="text-lg font-semibold text-text-main dark:text-dark-text-main mb-4">{{ 'dashboard.quickActions' | translate }}</h2>
       <div class="space-y-3">
-        <button class="w-full flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-primary-soft to-transparent hover:from-primary-soft hover:to-primary-soft/50 transition-all duration-200 group">
+        <button class="w-full flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-primary-soft dark:from-primary/20 to-transparent hover:from-primary-soft hover:to-primary-soft/50 dark:hover:from-primary/20 dark:hover:to-primary/10 transition-all duration-200 group">
           <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-white group-hover:scale-110 transition-transform">
             <i class="pi pi-plus"></i>
           </div>
-          <span class="font-medium text-text-main">Add Transaction</span>
+          <span class="font-medium text-text-main dark:text-dark-text-main">{{ 'dashboard.addTransaction' | translate }}</span>
         </button>
-        <button class="w-full flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-accent-soft to-transparent hover:from-accent-soft hover:to-accent-soft/50 transition-all duration-200 group">
+        <button class="w-full flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-accent-soft dark:from-accent/20 to-transparent hover:from-accent-soft hover:to-accent-soft/50 dark:hover:from-accent/20 dark:hover:to-accent/10 transition-all duration-200 group">
           <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-accent text-white group-hover:scale-110 transition-transform">
             <i class="pi pi-tags"></i>
           </div>
-          <span class="font-medium text-text-main">Manage Categories</span>
+          <span class="font-medium text-text-main dark:text-dark-text-main">{{ 'dashboard.manageCategories' | translate }}</span>
         </button>
-        <button class="w-full flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-amber-100 to-transparent hover:from-amber-100 hover:to-amber-50 transition-all duration-200 group">
+        <button class="w-full flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-amber-100 dark:from-amber-900/30 to-transparent hover:from-amber-100 hover:to-amber-50 dark:hover:from-amber-900/30 dark:hover:to-amber-900/20 transition-all duration-200 group">
           <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-warning text-white group-hover:scale-110 transition-transform">
             <i class="pi pi-chart-bar"></i>
           </div>
-          <span class="font-medium text-text-main">View Reports</span>
+          <span class="font-medium text-text-main dark:text-dark-text-main">{{ 'dashboard.viewReports' | translate }}</span>
         </button>
       </div>
     </div>
