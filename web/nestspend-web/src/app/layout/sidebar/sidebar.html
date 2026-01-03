@@ -42,11 +42,15 @@
         <i class="pi pi-user text-primary"></i>
       </div>
       <div class="flex-1 min-w-0">
-        <p class="text-sm font-semibold text-text-main truncate">User</p>
-        <p class="text-xs text-text-muted truncate">Free Plan</p>
+        <p class="text-sm font-semibold text-text-main truncate">{{ currentUser?.displayName || 'User' }}</p>
+        <p class="text-xs text-text-muted truncate">{{ currentUser?.role || 'Free Plan' }}</p>
       </div>
-      <button class="p-2 rounded-lg hover:bg-white/50 transition-colors" aria-label="Settings">
-        <i class="pi pi-cog text-text-muted"></i>
+      <button 
+        class="p-2 rounded-lg hover:bg-danger/20 transition-colors" 
+        aria-label="Logout"
+        (click)="onLogout()"
+      >
+        <i class="pi pi-sign-out text-danger"></i>
       </button>
     </div>
   </div>
