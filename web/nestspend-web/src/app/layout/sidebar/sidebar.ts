@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { AuthService } from '../../core/auth/auth.service';
 
 interface NavItem {
   label: string;
@@ -25,7 +26,17 @@ export class SidebarComponent {
     { label: 'Accounts', icon: 'pi pi-wallet', route: '/accounts' },
   ];
 
+  constructor(private authService: AuthService) {}
+
+  get currentUser() {
+    return this.authService.getUser();
+  }
+
   onNavItemClick(): void {
     this.navItemClicked.emit();
+  }
+
+  onLogout(): void {
+    this.authService.logout();
   }
 }
