@@ -63,7 +63,13 @@ export class RegisterComponent {
         householdName: this.householdName,
       };
 
-      const response = await this.authenticationService.register({ body: registerRequest });
+      const strictResponse = await this.authenticationService.register$Response({ body: registerRequest });
+      // The response body might be a Blob due to OpenAPI spec using */* content type
+      let response = strictResponse.body;
+      if (response instanceof Blob) {
+        const text = await response.text();
+        response = JSON.parse(text);
+      }
       if (!this.authService.handleAuthResponse(response)) {
         this.errorMessage.set('Registration failed. Please try again.');
       }
