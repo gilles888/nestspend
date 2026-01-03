@@ -2,25 +2,353 @@
   <!-- Header -->
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
     <div>
-      <h1 class="text-2xl lg:text-3xl font-bold text-text-main">Transactions</h1>
-      <p class="text-text-muted mt-1">Track and manage all your financial transactions.</p>
+      <h1 class="text-2xl lg:text-3xl font-bold text-text-main dark:text-dark-text-main">
+        {{ 'transactions.title' | translate }}
+      </h1>
+      <p class="text-text-muted dark:text-dark-text-muted mt-1">
+        {{ 'transactions.subtitle' | translate }}
+      </p>
     </div>
-    <button class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-dark text-white font-medium rounded-xl shadow-elevated hover:shadow-lg hover:scale-[1.02] transition-all duration-200">
+    <button
+      (click)="openAddDialog()"
+      class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-dark text-white font-medium rounded-xl shadow-elevated hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+    >
       <i class="pi pi-plus"></i>
-      <span>Add Transaction</span>
+      <span>{{ 'transactions.addTransaction' | translate }}</span>
     </button>
   </div>
 
-  <!-- Empty State -->
-  <div class="bg-surface rounded-2xl shadow-card border border-border/50 p-12 text-center">
-    <div class="flex items-center justify-center w-20 h-20 mx-auto rounded-2xl bg-primary-soft mb-6">
-      <i class="pi pi-list text-3xl text-primary"></i>
+  <!-- Filters -->
+  <div
+    class="bg-surface dark:bg-dark-surface rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 p-4"
+  >
+    <div class="flex flex-col lg:flex-row lg:items-end gap-4">
+      <!-- Date From -->
+      <div class="flex-1">
+        <label class="block text-sm font-medium text-text-muted dark:text-dark-text-muted mb-1">
+          {{ 'transactions.dateFrom' | translate }}
+        </label>
+        <p-datepicker
+          [ngModel]="filterFrom()"
+          (ngModelChange)="filterFrom.set($event)"
+          dateFormat="yy-mm-dd"
+          [showIcon]="true"
+          styleClass="w-full"
+          [showClear]="true"
+        ></p-datepicker>
+      </div>
+
+      <!-- Date To -->
+      <div class="flex-1">
+        <label class="block text-sm font-medium text-text-muted dark:text-dark-text-muted mb-1">
+          {{ 'transactions.dateTo' | translate }}
+        </label>
+        <p-datepicker
+          [ngModel]="filterTo()"
+          (ngModelChange)="filterTo.set($event)"
+          dateFormat="yy-mm-dd"
+          [showIcon]="true"
+          styleClass="w-full"
+          [showClear]="true"
+        ></p-datepicker>
+      </div>
+
+      <!-- Type Filter -->
+      <div class="flex-1">
+        <label class="block text-sm font-medium text-text-muted dark:text-dark-text-muted mb-1">
+          {{ 'transactions.type' | translate }}
+        </label>
+        <p-select
+          [options]="getFilterTypeOptions()"
+          [ngModel]="filterType()"
+          (ngModelChange)="filterType.set($event)"
+          optionLabel="label"
+          optionValue="value"
+          [showClear]="true"
+          styleClass="w-full"
+        ></p-select>
+      </div>
+
+      <!-- Category Filter -->
+      <div class="flex-1">
+        <label class="block text-sm font-medium text-text-muted dark:text-dark-text-muted mb-1">
+          {{ 'transactions.category' | translate }}
+        </label>
+        <p-select
+          [options]="getFilterCategoryOptions()"
+          [ngModel]="filterCategoryId()"
+          (ngModelChange)="filterCategoryId.set($event)"
+          optionLabel="label"
+          optionValue="value"
+          [showClear]="true"
+          styleClass="w-full"
+        ></p-select>
+      </div>
+
+      <!-- Filter Buttons -->
+      <div class="flex gap-2">
+        <p-button
+          label="{{ 'transactions.applyFilters' | translate }}"
+          icon="pi pi-filter"
+          (onClick)="applyFilters()"
+          [loading]="loading()"
+        ></p-button>
+        <p-button
+          label="{{ 'transactions.clearFilters' | translate }}"
+          icon="pi pi-times"
+          severity="secondary"
+          (onClick)="clearFilters()"
+        ></p-button>
+      </div>
     </div>
-    <h3 class="text-xl font-semibold text-text-main mb-2">No transactions yet</h3>
-    <p class="text-text-muted mb-6 max-w-md mx-auto">Start tracking your finances by adding your first transaction. It only takes a few seconds.</p>
-    <button class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-primary-dark text-white font-medium rounded-xl shadow-elevated hover:shadow-lg hover:scale-[1.02] transition-all duration-200">
-      <i class="pi pi-plus"></i>
-      <span>Add Your First Transaction</span>
-    </button>
   </div>
+
+  <!-- Loading State -->
+  @if (loading()) {
+    <div class="flex items-center justify-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+    </div>
+  }
+
+  <!-- Transactions Table -->
+  @if (!loading()) {
+    @if (transactions().length > 0) {
+      <div
+        class="bg-surface dark:bg-dark-surface rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 overflow-hidden"
+      >
+        <p-table
+          [value]="transactions()"
+          [tableStyle]="{ 'min-width': '100%' }"
+          styleClass="p-datatable-striped"
+          [paginator]="true"
+          [rows]="10"
+          [rowsPerPageOptions]="[5, 10, 25, 50]"
+          [showCurrentPageReport]="true"
+          currentPageReportTemplate="{{ 'transactions.showing' | translate }} {first} {{ 'transactions.to' | translate }} {last} {{ 'transactions.of' | translate }} {totalRecords} {{ 'transactions.entries' | translate }}"
+        >
+          <ng-template #header>
+            <tr>
+              <th class="text-left">{{ 'transactions.date' | translate }}</th>
+              <th class="text-left">{{ 'transactions.type' | translate }}</th>
+              <th class="text-left">{{ 'transactions.category' | translate }}</th>
+              <th class="text-left">{{ 'transactions.account' | translate }}</th>
+              <th class="text-left">{{ 'transactions.merchant' | translate }}</th>
+              <th class="text-right">{{ 'transactions.amount' | translate }}</th>
+              <th class="text-center">{{ 'transactions.actions' | translate }}</th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-tx>
+            <tr>
+              <td class="text-text-main dark:text-dark-text-main">
+                {{ tx.txDate | date: 'mediumDate' }}
+              </td>
+              <td>
+                <p-tag
+                  [value]="tx.type === 'INCOME' ? ('transactions.income' | translate) : ('transactions.expense' | translate)"
+                  [severity]="getTypeSeverity(tx.type)"
+                ></p-tag>
+              </td>
+              <td class="text-text-main dark:text-dark-text-main">{{ tx.categoryName }}</td>
+              <td class="text-text-main dark:text-dark-text-main">{{ tx.accountName }}</td>
+              <td class="text-text-muted dark:text-dark-text-muted">{{ tx.merchant || '-' }}</td>
+              <td
+                class="text-right font-semibold"
+                [ngClass]="{
+                  'text-success': tx.type === 'INCOME',
+                  'text-danger': tx.type === 'EXPENSE'
+                }"
+              >
+                {{ tx.type === 'INCOME' ? '+' : '-' }}{{ formatCentsToAmount(tx.amountCents) | currency }}
+              </td>
+              <td class="text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <p-button
+                    icon="pi pi-pencil"
+                    [rounded]="true"
+                    [text]="true"
+                    severity="info"
+                    (onClick)="openEditDialog(tx)"
+                    pTooltip="{{ 'transactions.edit' | translate }}"
+                  ></p-button>
+                  <p-button
+                    icon="pi pi-trash"
+                    [rounded]="true"
+                    [text]="true"
+                    severity="danger"
+                    (onClick)="confirmDelete(tx)"
+                    pTooltip="{{ 'transactions.delete' | translate }}"
+                  ></p-button>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+    } @else {
+      <!-- Empty State -->
+      <div
+        class="bg-surface dark:bg-dark-surface rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 p-12 text-center"
+      >
+        <div
+          class="flex items-center justify-center w-20 h-20 mx-auto rounded-2xl bg-primary-soft mb-6"
+        >
+          <i class="pi pi-list text-3xl text-primary"></i>
+        </div>
+        <h3 class="text-xl font-semibold text-text-main dark:text-dark-text-main mb-2">
+          {{ 'transactions.noTransactions' | translate }}
+        </h3>
+        <p class="text-text-muted dark:text-dark-text-muted mb-6 max-w-md mx-auto">
+          {{ 'transactions.noTransactionsDesc' | translate }}
+        </p>
+        <button
+          (click)="openAddDialog()"
+          class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-primary-dark text-white font-medium rounded-xl shadow-elevated hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+        >
+          <i class="pi pi-plus"></i>
+          <span>{{ 'transactions.addFirstTransaction' | translate }}</span>
+        </button>
+      </div>
+    }
+  }
 </div>
+
+<!-- Add/Edit Dialog -->
+<p-dialog
+  [header]="dialogMode() === 'add' ? ('transactions.addTransaction' | translate) : ('transactions.editTransaction' | translate)"
+  [modal]="true"
+  [visible]="dialogVisible()"
+  (visibleChange)="dialogVisible.set($event)"
+  [style]="{ width: '500px' }"
+  [breakpoints]="{ '960px': '75vw', '640px': '90vw' }"
+>
+  <form [formGroup]="transactionForm" (ngSubmit)="saveTransaction()">
+    <div class="space-y-4">
+      <!-- Date -->
+      <div>
+        <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">
+          {{ 'transactions.date' | translate }} *
+        </label>
+        <p-datepicker
+          formControlName="txDate"
+          dateFormat="yy-mm-dd"
+          [showIcon]="true"
+          styleClass="w-full"
+        ></p-datepicker>
+        @if (transactionForm.get('txDate')?.invalid && transactionForm.get('txDate')?.touched) {
+          <small class="text-danger">{{ 'transactions.dateRequired' | translate }}</small>
+        }
+      </div>
+
+      <!-- Type -->
+      <div>
+        <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">
+          {{ 'transactions.type' | translate }} *
+        </label>
+        <p-select
+          formControlName="type"
+          [options]="typeOptions"
+          optionLabel="label"
+          optionValue="value"
+          styleClass="w-full"
+        ></p-select>
+        @if (transactionForm.get('type')?.invalid && transactionForm.get('type')?.touched) {
+          <small class="text-danger">{{ 'transactions.typeRequired' | translate }}</small>
+        }
+      </div>
+
+      <!-- Amount -->
+      <div>
+        <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">
+          {{ 'transactions.amount' | translate }} *
+        </label>
+        <p-inputnumber
+          formControlName="amountCents"
+          mode="currency"
+          currency="USD"
+          locale="en-US"
+          [minFractionDigits]="2"
+          [maxFractionDigits]="2"
+          styleClass="w-full"
+        ></p-inputnumber>
+        @if (transactionForm.get('amountCents')?.invalid && transactionForm.get('amountCents')?.touched) {
+          <small class="text-danger">{{ 'transactions.amountRequired' | translate }}</small>
+        }
+      </div>
+
+      <!-- Category -->
+      <div>
+        <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">
+          {{ 'transactions.category' | translate }} *
+        </label>
+        <p-select
+          formControlName="categoryId"
+          [options]="getCategoryOptions()"
+          optionLabel="label"
+          optionValue="value"
+          [filter]="true"
+          filterBy="label"
+          styleClass="w-full"
+          placeholder="{{ 'transactions.selectCategory' | translate }}"
+        ></p-select>
+        @if (transactionForm.get('categoryId')?.invalid && transactionForm.get('categoryId')?.touched) {
+          <small class="text-danger">{{ 'transactions.categoryRequired' | translate }}</small>
+        }
+      </div>
+
+      <!-- Account -->
+      <div>
+        <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">
+          {{ 'transactions.account' | translate }} *
+        </label>
+        <p-select
+          formControlName="accountId"
+          [options]="getAccountOptions()"
+          optionLabel="label"
+          optionValue="value"
+          [filter]="true"
+          filterBy="label"
+          styleClass="w-full"
+          placeholder="{{ 'transactions.selectAccount' | translate }}"
+        ></p-select>
+        @if (transactionForm.get('accountId')?.invalid && transactionForm.get('accountId')?.touched) {
+          <small class="text-danger">{{ 'transactions.accountRequired' | translate }}</small>
+        }
+      </div>
+
+      <!-- Merchant -->
+      <div>
+        <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">
+          {{ 'transactions.merchant' | translate }}
+        </label>
+        <input type="text" pInputText formControlName="merchant" class="w-full" />
+      </div>
+
+      <!-- Note -->
+      <div>
+        <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">
+          {{ 'transactions.note' | translate }}
+        </label>
+        <textarea pTextarea formControlName="note" rows="3" class="w-full"></textarea>
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-3 mt-6">
+      <p-button
+        label="{{ 'transactions.cancel' | translate }}"
+        severity="secondary"
+        (onClick)="closeDialog()"
+      ></p-button>
+      <p-button
+        [label]="dialogMode() === 'add' ? ('transactions.create' | translate) : ('transactions.save' | translate)"
+        type="submit"
+        [disabled]="transactionForm.invalid"
+      ></p-button>
+    </div>
+  </form>
+</p-dialog>
+
+<!-- Confirm Dialog -->
+<p-confirmDialog></p-confirmDialog>
+
+<!-- Toast -->
+<p-toast></p-toast>
