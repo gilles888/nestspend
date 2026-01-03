@@ -95,7 +95,15 @@ export class AccountsComponent implements OnInit {
   async loadAccounts(): Promise<void> {
     this.loading.set(true);
     try {
-      const accounts = await this.accountsService.getAllAccounts();
+      const response = await this.accountsService.getAllAccounts$Response();
+      let accounts = response.body;
+
+      // Handle Blob response from OpenAPI spec
+      if (accounts instanceof Blob) {
+        const text = await accounts.text();
+        accounts = JSON.parse(text);
+      }
+
       this.accounts.set(Array.isArray(accounts) ? accounts : []);
     } catch (error) {
       console.error('Error loading accounts:', error);
