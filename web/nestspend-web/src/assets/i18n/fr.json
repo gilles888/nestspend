@@ -15,7 +15,8 @@
     "financeManager": "Gestionnaire de finances",
     "freePlan": "Plan gratuit",
     "error": "Erreur",
-    "success": "Succès"
+    "success": "Succès",
+    "info": "Info"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -120,7 +121,8 @@
     "deleteError": "Échec de la suppression de la catégorie",
     "loadError": "Échec du chargement des catégories",
     "generateSuccess": "Catégories par défaut créées avec succès",
-    "generateError": "Échec de la génération des catégories par défaut"
+    "generateError": "Échec de la génération des catégories par défaut",
+    "categoriesExist": "Les catégories existent déjà"
   },
   "theme": {
     "toggleDark": "Activer le mode sombre",

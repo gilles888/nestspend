@@ -266,21 +266,41 @@ export class CategoriesComponent implements OnInit {
 
   async generateDefaultCategories(): Promise<void> {
     this.loading.set(true);
+    let createdCount = 0;
+    let skippedCount = 0;
+
     try {
       for (const category of DEFAULT_CATEGORIES) {
-        await this.categoriesService.createCategory({
-          body: {
-            name: category.name,
-            icon: category.icon,
-            color: category.color,
-          },
+        try {
+          await this.categoriesService.createCategory({
+            body: {
+              name: category.name,
+              icon: category.icon,
+              color: category.color,
+            },
+          });
+          createdCount++;
+        } catch (error: unknown) {
+          // Skip categories that already exist (conflict error) or other errors
+          skippedCount++;
+          console.warn(`Skipped category "${category.name}":`, error);
+        }
+      }
+
+      if (createdCount > 0) {
+        this.messageService.add({
+          severity: 'success',
+          summary: this.translateService.instant('common.success') || 'Success',
+          detail: this.translateService.instant('categories.generateSuccess'),
+        });
+      } else if (skippedCount > 0) {
+        this.messageService.add({
+          severity: 'info',
+          summary: this.translateService.instant('common.info') || 'Info',
+          detail: this.translateService.instant('categories.categoriesExist'),
         });
       }
-      this.messageService.add({
-        severity: 'success',
-        summary: this.translateService.instant('common.success') || 'Success',
-        detail: this.translateService.instant('categories.generateSuccess'),
-      });
+
       await this.loadCategories();
     } catch (error) {
       console.error('Error generating default categories:', error);

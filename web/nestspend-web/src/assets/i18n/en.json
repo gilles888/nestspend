@@ -15,7 +15,8 @@
     "financeManager": "Finance Manager",
     "freePlan": "Free Plan",
     "error": "Error",
-    "success": "Success"
+    "success": "Success",
+    "info": "Info"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -120,7 +121,8 @@
     "deleteError": "Failed to delete category",
     "loadError": "Failed to load categories",
     "generateSuccess": "Default categories created successfully",
-    "generateError": "Failed to generate default categories"
+    "generateError": "Failed to generate default categories",
+    "categoriesExist": "Categories already exist"
   },
   "theme": {
     "toggleDark": "Switch to dark mode",
