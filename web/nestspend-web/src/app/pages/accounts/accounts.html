@@ -2,25 +2,221 @@
   <!-- Header -->
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
     <div>
-      <h1 class="text-2xl lg:text-3xl font-bold text-text-main">Accounts</h1>
-      <p class="text-text-muted mt-1">Manage your bank accounts and wallets.</p>
+      <h1 class="text-2xl lg:text-3xl font-bold text-text-main dark:text-dark-text-main">
+        {{ 'accounts.title' | translate }}
+      </h1>
+      <p class="text-text-muted dark:text-dark-text-muted mt-1">
+        {{ 'accounts.subtitle' | translate }}
+      </p>
     </div>
-    <button class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-dark text-white font-medium rounded-xl shadow-elevated hover:shadow-lg hover:scale-[1.02] transition-all duration-200">
+    <button
+      (click)="openAddDialog()"
+      class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-dark text-white font-medium rounded-xl shadow-elevated hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+    >
       <i class="pi pi-plus"></i>
-      <span>Add Account</span>
+      <span>{{ 'accounts.addAccount' | translate }}</span>
     </button>
   </div>
 
-  <!-- Empty State -->
-  <div class="bg-surface rounded-2xl shadow-card border border-border/50 p-12 text-center">
-    <div class="flex items-center justify-center w-20 h-20 mx-auto rounded-2xl bg-amber-100 mb-6">
-      <i class="pi pi-wallet text-3xl text-warning"></i>
+  <!-- Loading State -->
+  @if (loading()) {
+    <div class="flex items-center justify-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
     </div>
-    <h3 class="text-xl font-semibold text-text-main mb-2">No accounts yet</h3>
-    <p class="text-text-muted mb-6 max-w-md mx-auto">Add your bank accounts, credit cards, or cash wallets to start tracking your finances.</p>
-    <button class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-primary-dark text-white font-medium rounded-xl shadow-elevated hover:shadow-lg hover:scale-[1.02] transition-all duration-200">
-      <i class="pi pi-plus"></i>
-      <span>Add Your First Account</span>
-    </button>
-  </div>
+  }
+
+  <!-- Accounts Content -->
+  @if (!loading()) {
+    @if (accounts().length > 0) {
+      <!-- Accounts Table -->
+      <div
+        class="bg-surface dark:bg-dark-surface rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 overflow-hidden"
+      >
+        <p-table
+          [value]="accounts()"
+          [tableStyle]="{ 'min-width': '100%' }"
+          styleClass="p-datatable-striped"
+          [paginator]="true"
+          [rows]="10"
+          [rowsPerPageOptions]="[5, 10, 25, 50]"
+          [showCurrentPageReport]="true"
+          currentPageReportTemplate="{{ 'accounts.showing' | translate }} {first} {{ 'accounts.to' | translate }} {last} {{ 'accounts.of' | translate }} {totalRecords} {{ 'accounts.entries' | translate }}"
+        >
+          <ng-template #header>
+            <tr>
+              <th class="text-left" style="width: 60px">{{ 'accounts.type' | translate }}</th>
+              <th class="text-left">{{ 'accounts.name' | translate }}</th>
+              <th class="text-center" style="width: 120px">{{ 'accounts.actions' | translate }}</th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-account>
+            <tr>
+              <td>
+                <div
+                  class="flex items-center justify-center w-10 h-10 rounded-lg"
+                  [style.background-color]="getTypeInfo(account.type).color + '20'"
+                >
+                  <i class="pi {{ getTypeInfo(account.type).icon }}" [style.color]="getTypeInfo(account.type).color"></i>
+                </div>
+              </td>
+              <td>
+                <div class="flex flex-col">
+                  <span class="text-text-main dark:text-dark-text-main font-medium">{{ account.name }}</span>
+                  <span class="text-text-muted dark:text-dark-text-muted text-sm">{{ 'accounts.type_' + account.type | translate }}</span>
+                </div>
+              </td>
+              <td class="text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <p-button
+                    icon="pi pi-pencil"
+                    [rounded]="true"
+                    [text]="true"
+                    severity="info"
+                    (onClick)="openEditDialog(account)"
+                    pTooltip="{{ 'accounts.edit' | translate }}"
+                  ></p-button>
+                  <p-button
+                    icon="pi pi-trash"
+                    [rounded]="true"
+                    [text]="true"
+                    severity="danger"
+                    (onClick)="confirmDelete(account)"
+                    pTooltip="{{ 'accounts.delete' | translate }}"
+                  ></p-button>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+    } @else {
+      <!-- Empty State -->
+      <div
+        class="bg-surface dark:bg-dark-surface rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 p-12 text-center"
+      >
+        <div
+          class="flex items-center justify-center w-20 h-20 mx-auto rounded-2xl bg-amber-100 mb-6"
+        >
+          <i class="pi pi-wallet text-3xl text-warning"></i>
+        </div>
+        <h3 class="text-xl font-semibold text-text-main dark:text-dark-text-main mb-2">
+          {{ 'accounts.noAccounts' | translate }}
+        </h3>
+        <p class="text-text-muted dark:text-dark-text-muted mb-6 max-w-md mx-auto">
+          {{ 'accounts.noAccountsDesc' | translate }}
+        </p>
+        <button
+          (click)="openAddDialog()"
+          class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-primary-dark text-white font-medium rounded-xl shadow-elevated hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+        >
+          <i class="pi pi-plus"></i>
+          <span>{{ 'accounts.addFirstAccount' | translate }}</span>
+        </button>
+      </div>
+    }
+  }
 </div>
+
+<!-- Add/Edit Dialog -->
+<p-dialog
+  [header]="dialogMode() === 'add' ? ('accounts.addAccount' | translate) : ('accounts.editAccount' | translate)"
+  [modal]="true"
+  [visible]="dialogVisible()"
+  (visibleChange)="dialogVisible.set($event)"
+  [style]="{ width: '450px' }"
+  [breakpoints]="{ '960px': '75vw', '640px': '90vw' }"
+>
+  <form [formGroup]="accountForm" (ngSubmit)="saveAccount()">
+    <div class="space-y-4">
+      <!-- Name -->
+      <div>
+        <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">
+          {{ 'accounts.name' | translate }} *
+        </label>
+        <input
+          type="text"
+          pInputText
+          formControlName="name"
+          class="w-full"
+          [placeholder]="'accounts.namePlaceholder' | translate"
+        />
+        @if (accountForm.get('name')?.invalid && accountForm.get('name')?.touched) {
+          <small class="text-danger">{{ 'accounts.nameRequired' | translate }}</small>
+        }
+      </div>
+
+      <!-- Type -->
+      <div>
+        <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">
+          {{ 'accounts.type' | translate }} *
+        </label>
+        <p-select
+          formControlName="type"
+          [options]="typeOptions"
+          optionLabel="label"
+          optionValue="value"
+          styleClass="w-full"
+          placeholder="{{ 'accounts.selectType' | translate }}"
+        >
+          <ng-template #selectedItem let-selectedOption>
+            <div class="flex items-center gap-2" *ngIf="selectedOption">
+              <i class="pi {{ selectedOption.icon }}" [style.color]="selectedOption.color"></i>
+              <span>{{ 'accounts.type_' + selectedOption.value | translate }}</span>
+            </div>
+          </ng-template>
+          <ng-template #item let-option>
+            <div class="flex items-center gap-2">
+              <i class="pi {{ option.icon }}" [style.color]="option.color"></i>
+              <span>{{ 'accounts.type_' + option.value | translate }}</span>
+            </div>
+          </ng-template>
+        </p-select>
+      </div>
+
+      <!-- Preview -->
+      <div>
+        <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-2">
+          {{ 'accounts.preview' | translate }}
+        </label>
+        <div class="flex items-center gap-3 p-3 bg-background dark:bg-dark-background rounded-lg">
+          <div
+            class="flex items-center justify-center w-10 h-10 rounded-lg"
+            [style.background-color]="getTypeInfo(accountForm.get('type')?.value).color + '20'"
+          >
+            <i
+              class="pi {{ getTypeInfo(accountForm.get('type')?.value).icon }}"
+              [style.color]="getTypeInfo(accountForm.get('type')?.value).color"
+            ></i>
+          </div>
+          <div class="flex flex-col">
+            <span class="font-medium text-text-main dark:text-dark-text-main">
+              {{ accountForm.get('name')?.value || ('accounts.accountName' | translate) }}
+            </span>
+            <span class="text-text-muted dark:text-dark-text-muted text-sm">
+              {{ 'accounts.type_' + (accountForm.get('type')?.value || 'BANK') | translate }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-3 mt-6">
+      <p-button
+        label="{{ 'accounts.cancel' | translate }}"
+        severity="secondary"
+        (onClick)="closeDialog()"
+      ></p-button>
+      <p-button
+        [label]="dialogMode() === 'add' ? ('accounts.create' | translate) : ('accounts.save' | translate)"
+        type="submit"
+        [disabled]="accountForm.invalid"
+      ></p-button>
+    </div>
+  </form>
+</p-dialog>
+
+<!-- Confirm Dialog -->
+<p-confirmDialog></p-confirmDialog>
+
+<!-- Toast -->
+<p-toast></p-toast>
