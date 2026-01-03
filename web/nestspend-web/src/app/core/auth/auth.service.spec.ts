@@ -52,14 +52,18 @@ describe('AuthService', () => {
     });
 
     it('should return true for isAuthenticated when token is stored', () => {
+      // Store a token before creating a new service instance
       localStorage.setItem(TOKEN_KEY, 'some-token');
-      // Reset TestBed to create a new instance with the stored token
+      
+      // Reset TestBed to create a fresh service instance
+      // This simulates a page refresh where the service is re-initialized
+      // and reads the token from localStorage during construction
       TestBed.resetTestingModule();
       TestBed.configureTestingModule({
         providers: [AuthService, { provide: Router, useValue: { navigate: vi.fn() } }],
       });
-      const newService = TestBed.inject(AuthService);
-      expect(newService.isAuthenticated()).toBe(true);
+      const freshService = TestBed.inject(AuthService);
+      expect(freshService.isAuthenticated()).toBe(true);
     });
   });
 
