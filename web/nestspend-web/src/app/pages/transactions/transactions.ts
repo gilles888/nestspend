@@ -102,14 +102,28 @@ export class TransactionsComponent implements OnInit {
   async loadData(): Promise<void> {
     this.loading.set(true);
     try {
-      const [transactions, categories, accounts] = await Promise.all([
+      const [transactionsResponse, categoriesResponse, accountsResponse] = await Promise.all([
         this.loadTransactions(),
-        this.categoriesService.getAllCategories(),
-        this.accountsService.getAllAccounts(),
+        this.categoriesService.getAllCategories$Response(),
+        this.accountsService.getAllAccounts$Response(),
       ]);
-      this.transactions.set(transactions);
-      this.categories.set(categories);
-      this.accounts.set(accounts);
+
+      // Handle Blob responses from OpenAPI spec
+      let categories = categoriesResponse.body;
+      if (categories instanceof Blob) {
+        const text = await categories.text();
+        categories = JSON.parse(text);
+      }
+
+      let accounts = accountsResponse.body;
+      if (accounts instanceof Blob) {
+        const text = await accounts.text();
+        accounts = JSON.parse(text);
+      }
+
+      this.transactions.set(transactionsResponse);
+      this.categories.set(Array.isArray(categories) ? categories : []);
+      this.accounts.set(Array.isArray(accounts) ? accounts : []);
     } catch (error) {
       console.error('Error loading data:', error);
       this.messageService.add({
@@ -143,7 +157,16 @@ export class TransactionsComponent implements OnInit {
       params.categoryId = this.filterCategoryId()!;
     }
 
-    return this.transactionsService.getAllTransactions(params);
+    const response = await this.transactionsService.getAllTransactions$Response(params);
+    let transactions = response.body;
+
+    // Handle Blob response from OpenAPI spec
+    if (transactions instanceof Blob) {
+      const text = await transactions.text();
+      transactions = JSON.parse(text);
+    }
+
+    return Array.isArray(transactions) ? transactions : [];
   }
 
   async applyFilters(): Promise<void> {
