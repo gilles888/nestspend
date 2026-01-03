@@ -13,7 +13,9 @@
     "profile": "Profil utilisateur",
     "toggleMenu": "Basculer le menu",
     "financeManager": "Gestionnaire de finances",
-    "freePlan": "Plan gratuit"
+    "freePlan": "Plan gratuit",
+    "error": "Erreur",
+    "success": "Succès"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -107,7 +109,18 @@
     "showing": "Affichage de",
     "to": "à",
     "of": "sur",
-    "entries": "entrées"
+    "entries": "entrées",
+    "confirmDeleteHeader": "Confirmer la suppression",
+    "confirmDeleteMessage": "Êtes-vous sûr de vouloir supprimer la catégorie \"{{name}}\" ?",
+    "nameExists": "Une catégorie avec ce nom existe déjà",
+    "createSuccess": "Catégorie créée avec succès",
+    "updateSuccess": "Catégorie mise à jour avec succès",
+    "deleteSuccess": "Catégorie supprimée avec succès",
+    "saveError": "Échec de l'enregistrement de la catégorie",
+    "deleteError": "Échec de la suppression de la catégorie",
+    "loadError": "Échec du chargement des catégories",
+    "generateSuccess": "Catégories par défaut créées avec succès",
+    "generateError": "Échec de la génération des catégories par défaut"
   },
   "theme": {
     "toggleDark": "Activer le mode sombre",

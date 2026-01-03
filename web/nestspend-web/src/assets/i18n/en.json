@@ -13,7 +13,9 @@
     "profile": "User profile",
     "toggleMenu": "Toggle menu",
     "financeManager": "Finance Manager",
-    "freePlan": "Free Plan"
+    "freePlan": "Free Plan",
+    "error": "Error",
+    "success": "Success"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -107,7 +109,18 @@
     "showing": "Showing",
     "to": "to",
     "of": "of",
-    "entries": "entries"
+    "entries": "entries",
+    "confirmDeleteHeader": "Confirm Deletion",
+    "confirmDeleteMessage": "Are you sure you want to delete the category \"{{name}}\"?",
+    "nameExists": "A category with this name already exists",
+    "createSuccess": "Category created successfully",
+    "updateSuccess": "Category updated successfully",
+    "deleteSuccess": "Category deleted successfully",
+    "saveError": "Failed to save category",
+    "deleteError": "Failed to delete category",
+    "loadError": "Failed to load categories",
+    "generateSuccess": "Default categories created successfully",
+    "generateError": "Failed to generate default categories"
   },
   "theme": {
     "toggleDark": "Switch to dark mode",

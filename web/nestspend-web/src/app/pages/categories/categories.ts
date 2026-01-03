@@ -1,7 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -100,6 +100,7 @@ export class CategoriesComponent implements OnInit {
     private categoriesService: CategoriesService,
     private confirmationService: ConfirmationService,
     private messageService: MessageService,
+    private translateService: TranslateService,
     private fb: FormBuilder
   ) {
     this.initForm();
@@ -134,8 +135,8 @@ export class CategoriesComponent implements OnInit {
       console.error('Error loading categories:', error);
       this.messageService.add({
         severity: 'error',
-        summary: 'Error',
-        detail: 'Failed to load categories',
+        summary: this.translateService.instant('common.error') || 'Error',
+        detail: this.translateService.instant('categories.loadError'),
       });
     } finally {
       this.loading.set(false);
@@ -188,8 +189,8 @@ export class CategoriesComponent implements OnInit {
     if (!this.isNameUnique(formValue.name)) {
       this.messageService.add({
         severity: 'error',
-        summary: 'Error',
-        detail: 'A category with this name already exists',
+        summary: this.translateService.instant('common.error') || 'Error',
+        detail: this.translateService.instant('categories.nameExists'),
       });
       return;
     }
@@ -205,8 +206,8 @@ export class CategoriesComponent implements OnInit {
         await this.categoriesService.createCategory({ body });
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Category created successfully',
+          summary: this.translateService.instant('common.success') || 'Success',
+          detail: this.translateService.instant('categories.createSuccess'),
         });
       } else {
         const id = this.selectedCategory()?.id;
@@ -214,8 +215,8 @@ export class CategoriesComponent implements OnInit {
           await this.categoriesService.updateCategory({ id, body });
           this.messageService.add({
             severity: 'success',
-            summary: 'Success',
-            detail: 'Category updated successfully',
+            summary: this.translateService.instant('common.success') || 'Success',
+            detail: this.translateService.instant('categories.updateSuccess'),
           });
         }
       }
@@ -226,16 +227,16 @@ export class CategoriesComponent implements OnInit {
       console.error('Error saving category:', error);
       this.messageService.add({
         severity: 'error',
-        summary: 'Error',
-        detail: 'Failed to save category',
+        summary: this.translateService.instant('common.error') || 'Error',
+        detail: this.translateService.instant('categories.saveError'),
       });
     }
   }
 
   confirmDelete(category: CategoryResponse): void {
     this.confirmationService.confirm({
-      message: `Are you sure you want to delete the category "${category.name}"?`,
-      header: 'Confirm Deletion',
+      message: this.translateService.instant('categories.confirmDeleteMessage', { name: category.name }),
+      header: this.translateService.instant('categories.confirmDeleteHeader'),
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => this.deleteCategory(category),
@@ -248,8 +249,8 @@ export class CategoriesComponent implements OnInit {
         await this.categoriesService.deleteCategory({ id: category.id });
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Category deleted successfully',
+          summary: this.translateService.instant('common.success') || 'Success',
+          detail: this.translateService.instant('categories.deleteSuccess'),
         });
         await this.loadCategories();
       }
@@ -257,8 +258,8 @@ export class CategoriesComponent implements OnInit {
       console.error('Error deleting category:', error);
       this.messageService.add({
         severity: 'error',
-        summary: 'Error',
-        detail: 'Failed to delete category',
+        summary: this.translateService.instant('common.error') || 'Error',
+        detail: this.translateService.instant('categories.deleteError'),
       });
     }
   }
@@ -277,16 +278,16 @@ export class CategoriesComponent implements OnInit {
       }
       this.messageService.add({
         severity: 'success',
-        summary: 'Success',
-        detail: 'Default categories created successfully',
+        summary: this.translateService.instant('common.success') || 'Success',
+        detail: this.translateService.instant('categories.generateSuccess'),
       });
       await this.loadCategories();
     } catch (error) {
       console.error('Error generating default categories:', error);
       this.messageService.add({
         severity: 'error',
-        summary: 'Error',
-        detail: 'Failed to generate default categories',
+        summary: this.translateService.instant('common.error') || 'Error',
+        detail: this.translateService.instant('categories.generateError'),
       });
     } finally {
       this.loading.set(false);
