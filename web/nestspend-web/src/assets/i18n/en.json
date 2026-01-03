@@ -1,0 +1,42 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "transactions": "Transactions",
+    "categories": "Categories",
+    "accounts": "Accounts",
+    "menu": "Menu"
+  },
+  "common": {
+    "search": "Search...",
+    "logout": "Logout",
+    "notifications": "Notifications",
+    "profile": "User profile",
+    "toggleMenu": "Toggle menu",
+    "financeManager": "Finance Manager",
+    "freePlan": "Free Plan"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome back! Here's your financial overview.",
+    "newTransaction": "New Transaction",
+    "totalBalance": "Total Balance",
+    "income": "Income",
+    "expenses": "Expenses",
+    "savings": "Savings",
+    "recentTransactions": "Recent Transactions",
+    "viewAll": "View All",
+    "quickActions": "Quick Actions",
+    "addTransaction": "Add Transaction",
+    "manageCategories": "Manage Categories",
+    "viewReports": "View Reports"
+  },
+  "theme": {
+    "toggleDark": "Switch to dark mode",
+    "toggleLight": "Switch to light mode"
+  },
+  "language": {
+    "select": "Select language",
+    "fr": "Français",
+    "en": "English"
+  }
+}
