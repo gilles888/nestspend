@@ -76,14 +76,68 @@
     </button>
 
     <!-- User Profile -->
-    <button
-      class="flex items-center gap-2 p-1.5 pr-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200"
-      [attr.aria-label]="'common.profile' | translate"
-    >
-      <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent text-white text-sm font-semibold">
-        U
-      </div>
-      <i class="pi pi-chevron-down text-xs text-text-muted dark:text-dark-text-muted hidden sm:block"></i>
-    </button>
+    <div class="relative">
+      <button
+        class="flex items-center gap-2 p-1.5 pr-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200"
+        [attr.aria-label]="'common.profile' | translate"
+        [attr.aria-expanded]="isUserMenuOpen()"
+        aria-haspopup="true"
+        (click)="toggleUserMenu()"
+      >
+        <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent text-white text-sm font-semibold">
+          {{ currentUser?.displayName?.charAt(0) || 'U' }}
+        </div>
+        <i 
+          class="pi text-xs text-text-muted dark:text-dark-text-muted hidden sm:block transition-transform duration-200"
+          [class.pi-chevron-down]="!isUserMenuOpen()"
+          [class.pi-chevron-up]="isUserMenuOpen()"
+        ></i>
+      </button>
+
+      <!-- Dropdown Menu -->
+      @if (isUserMenuOpen()) {
+        <div 
+          class="absolute right-0 top-full mt-2 w-56 bg-surface dark:bg-dark-surface rounded-xl shadow-elevated dark:shadow-dark-elevated border border-border dark:border-dark-border overflow-hidden z-50"
+          role="menu"
+        >
+          <!-- User Info -->
+          <div class="px-4 py-3 border-b border-border dark:border-dark-border">
+            <p class="text-sm font-semibold text-text-main dark:text-dark-text-main truncate">
+              {{ currentUser?.displayName || 'User' }}
+            </p>
+            <p class="text-xs text-text-muted dark:text-dark-text-muted truncate">
+              {{ currentUser?.role || '' }}
+            </p>
+          </div>
+
+          <!-- Menu Items -->
+          <div class="py-1">
+            <button
+              class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-text-main dark:text-dark-text-main hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              role="menuitem"
+            >
+              <i class="pi pi-user text-text-muted dark:text-dark-text-muted"></i>
+              <span>{{ 'common.profile' | translate }}</span>
+            </button>
+            <button
+              class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-danger hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              role="menuitem"
+              (click)="onLogout()"
+            >
+              <i class="pi pi-sign-out"></i>
+              <span>{{ 'common.logout' | translate }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Backdrop to close menu -->
+        <div 
+          class="fixed inset-0 z-40" 
+          (click)="closeUserMenu()"
+          (keydown.escape)="closeUserMenu()"
+          tabindex="-1"
+        ></div>
+      }
+    </div>
   </div>
 </header>

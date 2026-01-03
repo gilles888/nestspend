@@ -1,8 +1,9 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { LanguageService } from '../../core/services/language.service';
 import { ThemeService } from '../../core/services/theme.service';
+import { AuthService } from '../../core/auth/auth.service';
 
 interface LanguageOption {
   code: string;
@@ -24,10 +25,17 @@ export class TopbarComponent {
     { code: 'en', label: 'EN' }
   ];
 
+  isUserMenuOpen = signal(false);
+
   constructor(
     public languageService: LanguageService,
-    public themeService: ThemeService
+    public themeService: ThemeService,
+    private authService: AuthService
   ) {}
+
+  get currentUser() {
+    return this.authService.getUser();
+  }
 
   onMenuToggle(): void {
     this.menuToggle.emit();
@@ -43,5 +51,18 @@ export class TopbarComponent {
 
   isCurrentLang(lang: string): boolean {
     return this.languageService.currentLang() === lang;
+  }
+
+  toggleUserMenu(): void {
+    this.isUserMenuOpen.update(value => !value);
+  }
+
+  closeUserMenu(): void {
+    this.isUserMenuOpen.set(false);
+  }
+
+  onLogout(): void {
+    this.closeUserMenu();
+    this.authService.logout();
   }
 }
