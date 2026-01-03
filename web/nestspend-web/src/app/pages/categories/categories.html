@@ -2,25 +2,241 @@
   <!-- Header -->
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
     <div>
-      <h1 class="text-2xl lg:text-3xl font-bold text-text-main">Categories</h1>
-      <p class="text-text-muted mt-1">Organize your transactions with custom categories.</p>
+      <h1 class="text-2xl lg:text-3xl font-bold text-text-main dark:text-dark-text-main">
+        {{ 'categories.title' | translate }}
+      </h1>
+      <p class="text-text-muted dark:text-dark-text-muted mt-1">
+        {{ 'categories.subtitle' | translate }}
+      </p>
     </div>
-    <button class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-dark text-white font-medium rounded-xl shadow-elevated hover:shadow-lg hover:scale-[1.02] transition-all duration-200">
+    <button
+      (click)="openAddDialog()"
+      class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-dark text-white font-medium rounded-xl shadow-elevated hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+    >
       <i class="pi pi-plus"></i>
-      <span>New Category</span>
+      <span>{{ 'categories.addCategory' | translate }}</span>
     </button>
   </div>
 
-  <!-- Empty State -->
-  <div class="bg-surface rounded-2xl shadow-card border border-border/50 p-12 text-center">
-    <div class="flex items-center justify-center w-20 h-20 mx-auto rounded-2xl bg-accent-soft mb-6">
-      <i class="pi pi-tags text-3xl text-accent"></i>
+  <!-- Loading State -->
+  @if (loading()) {
+    <div class="flex items-center justify-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
     </div>
-    <h3 class="text-xl font-semibold text-text-main mb-2">No categories yet</h3>
-    <p class="text-text-muted mb-6 max-w-md mx-auto">Create categories to organize your transactions and get better insights into your spending habits.</p>
-    <button class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-primary-dark text-white font-medium rounded-xl shadow-elevated hover:shadow-lg hover:scale-[1.02] transition-all duration-200">
-      <i class="pi pi-plus"></i>
-      <span>Create Your First Category</span>
-    </button>
-  </div>
+  }
+
+  <!-- Categories Content -->
+  @if (!loading()) {
+    @if (categories().length > 0) {
+      <!-- Categories Table -->
+      <div
+        class="bg-surface dark:bg-dark-surface rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 overflow-hidden"
+      >
+        <p-table
+          [value]="categories()"
+          [tableStyle]="{ 'min-width': '100%' }"
+          styleClass="p-datatable-striped"
+          [paginator]="true"
+          [rows]="10"
+          [rowsPerPageOptions]="[5, 10, 25, 50]"
+          [showCurrentPageReport]="true"
+          currentPageReportTemplate="{{ 'categories.showing' | translate }} {first} {{ 'categories.to' | translate }} {last} {{ 'categories.of' | translate }} {totalRecords} {{ 'categories.entries' | translate }}"
+        >
+          <ng-template #header>
+            <tr>
+              <th class="text-left" style="width: 60px">{{ 'categories.icon' | translate }}</th>
+              <th class="text-left">{{ 'categories.name' | translate }}</th>
+              <th class="text-left" style="width: 100px">{{ 'categories.color' | translate }}</th>
+              <th class="text-center" style="width: 120px">{{ 'categories.actions' | translate }}</th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-category>
+            <tr>
+              <td>
+                <div
+                  class="flex items-center justify-center w-10 h-10 rounded-lg"
+                  [style.background-color]="(category.color || '#6366f1') + '20'"
+                >
+                  <i class="pi {{ category.icon || 'pi-tag' }}" [style.color]="category.color || '#6366f1'"></i>
+                </div>
+              </td>
+              <td class="text-text-main dark:text-dark-text-main font-medium">{{ category.name }}</td>
+              <td>
+                <div class="flex items-center gap-2">
+                  <div
+                    class="w-6 h-6 rounded-full border border-border"
+                    [style.background-color]="category.color || '#6366f1'"
+                  ></div>
+                  <span class="text-text-muted dark:text-dark-text-muted text-sm">{{ category.color || '#6366f1' }}</span>
+                </div>
+              </td>
+              <td class="text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <p-button
+                    icon="pi pi-pencil"
+                    [rounded]="true"
+                    [text]="true"
+                    severity="info"
+                    (onClick)="openEditDialog(category)"
+                    pTooltip="{{ 'categories.edit' | translate }}"
+                  ></p-button>
+                  <p-button
+                    icon="pi pi-trash"
+                    [rounded]="true"
+                    [text]="true"
+                    severity="danger"
+                    (onClick)="confirmDelete(category)"
+                    pTooltip="{{ 'categories.delete' | translate }}"
+                  ></p-button>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+    } @else {
+      <!-- Empty State -->
+      <div
+        class="bg-surface dark:bg-dark-surface rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 p-12 text-center"
+      >
+        <div
+          class="flex items-center justify-center w-20 h-20 mx-auto rounded-2xl bg-accent-soft mb-6"
+        >
+          <i class="pi pi-tags text-3xl text-accent"></i>
+        </div>
+        <h3 class="text-xl font-semibold text-text-main dark:text-dark-text-main mb-2">
+          {{ 'categories.noCategories' | translate }}
+        </h3>
+        <p class="text-text-muted dark:text-dark-text-muted mb-6 max-w-md mx-auto">
+          {{ 'categories.noCategoriesDesc' | translate }}
+        </p>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <button
+            (click)="generateDefaultCategories()"
+            class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-accent to-accent-dark text-white font-medium rounded-xl shadow-elevated hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+          >
+            <i class="pi pi-bolt"></i>
+            <span>{{ 'categories.generateDefaults' | translate }}</span>
+          </button>
+          <button
+            (click)="openAddDialog()"
+            class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-primary-dark text-white font-medium rounded-xl shadow-elevated hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+          >
+            <i class="pi pi-plus"></i>
+            <span>{{ 'categories.addFirstCategory' | translate }}</span>
+          </button>
+        </div>
+      </div>
+    }
+  }
 </div>
+
+<!-- Add/Edit Dialog -->
+<p-dialog
+  [header]="dialogMode() === 'add' ? ('categories.addCategory' | translate) : ('categories.editCategory' | translate)"
+  [modal]="true"
+  [visible]="dialogVisible()"
+  (visibleChange)="dialogVisible.set($event)"
+  [style]="{ width: '450px' }"
+  [breakpoints]="{ '960px': '75vw', '640px': '90vw' }"
+>
+  <form [formGroup]="categoryForm" (ngSubmit)="saveCategory()">
+    <div class="space-y-4">
+      <!-- Name -->
+      <div>
+        <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">
+          {{ 'categories.name' | translate }} *
+        </label>
+        <input
+          type="text"
+          pInputText
+          formControlName="name"
+          class="w-full"
+          [placeholder]="'categories.namePlaceholder' | translate"
+        />
+        @if (categoryForm.get('name')?.invalid && categoryForm.get('name')?.touched) {
+          <small class="text-danger">{{ 'categories.nameRequired' | translate }}</small>
+        }
+      </div>
+
+      <!-- Icon -->
+      <div>
+        <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">
+          {{ 'categories.icon' | translate }}
+        </label>
+        <p-select
+          formControlName="icon"
+          [options]="iconOptions"
+          optionLabel="label"
+          optionValue="value"
+          styleClass="w-full"
+          placeholder="{{ 'categories.selectIcon' | translate }}"
+        >
+          <ng-template #selectedItem let-selectedOption>
+            <div class="flex items-center gap-2" *ngIf="selectedOption">
+              <i class="pi {{ selectedOption.value }}"></i>
+              <span>{{ selectedOption.label }}</span>
+            </div>
+          </ng-template>
+          <ng-template #item let-option>
+            <div class="flex items-center gap-2">
+              <i class="pi {{ option.value }}"></i>
+              <span>{{ option.label }}</span>
+            </div>
+          </ng-template>
+        </p-select>
+      </div>
+
+      <!-- Color -->
+      <div>
+        <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">
+          {{ 'categories.color' | translate }}
+        </label>
+        <div class="flex items-center gap-3">
+          <p-colorpicker formControlName="color"></p-colorpicker>
+          <span class="text-text-muted dark:text-dark-text-muted text-sm">{{ categoryForm.get('color')?.value }}</span>
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div>
+        <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-2">
+          {{ 'categories.preview' | translate }}
+        </label>
+        <div class="flex items-center gap-3 p-3 bg-background dark:bg-dark-background rounded-lg">
+          <div
+            class="flex items-center justify-center w-10 h-10 rounded-lg"
+            [style.background-color]="(categoryForm.get('color')?.value || '#6366f1') + '20'"
+          >
+            <i
+              class="pi {{ categoryForm.get('icon')?.value || 'pi-tag' }}"
+              [style.color]="categoryForm.get('color')?.value || '#6366f1'"
+            ></i>
+          </div>
+          <span class="font-medium text-text-main dark:text-dark-text-main">
+            {{ categoryForm.get('name')?.value || ('categories.categoryName' | translate) }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-3 mt-6">
+      <p-button
+        label="{{ 'categories.cancel' | translate }}"
+        severity="secondary"
+        (onClick)="closeDialog()"
+      ></p-button>
+      <p-button
+        [label]="dialogMode() === 'add' ? ('categories.create' | translate) : ('categories.save' | translate)"
+        type="submit"
+        [disabled]="categoryForm.invalid"
+      ></p-button>
+    </div>
+  </form>
+</p-dialog>
+
+<!-- Confirm Dialog -->
+<p-confirmDialog></p-confirmDialog>
+
+<!-- Toast -->
+<p-toast></p-toast>
