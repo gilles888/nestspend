@@ -76,7 +76,7 @@
     </button>
 
     <!-- User Profile -->
-    <div class="relative">
+    <div class="relative" (keydown.escape)="closeUserMenu()">
       <button
         class="flex items-center gap-2 p-1.5 pr-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200"
         [attr.aria-label]="'common.profile' | translate"
@@ -85,7 +85,7 @@
         (click)="toggleUserMenu()"
       >
         <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent text-white text-sm font-semibold">
-          {{ currentUser?.displayName?.charAt(0) || 'U' }}
+          {{ currentUser()?.displayName?.charAt(0) || 'U' }}
         </div>
         <i 
           class="pi text-xs text-text-muted dark:text-dark-text-muted hidden sm:block transition-transform duration-200"
@@ -103,10 +103,10 @@
           <!-- User Info -->
           <div class="px-4 py-3 border-b border-border dark:border-dark-border">
             <p class="text-sm font-semibold text-text-main dark:text-dark-text-main truncate">
-              {{ currentUser?.displayName || 'User' }}
+              {{ currentUser()?.displayName || 'User' }}
             </p>
             <p class="text-xs text-text-muted dark:text-dark-text-muted truncate">
-              {{ currentUser?.role || '' }}
+              {{ currentUser()?.role || '' }}
             </p>
           </div>
 
@@ -134,8 +134,6 @@
         <div 
           class="fixed inset-0 z-40" 
           (click)="closeUserMenu()"
-          (keydown.escape)="closeUserMenu()"
-          tabindex="-1"
         ></div>
       }
     </div>

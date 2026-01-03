@@ -1,9 +1,10 @@
-import { Component, EventEmitter, Output, signal } from '@angular/core';
+import { Component, EventEmitter, Output, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslateModule } from '@ngx-translate/core';
 import { LanguageService } from '../../core/services/language.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { AuthResponse } from '../../core/api/models/auth-response';
 
 interface LanguageOption {
   code: string;
@@ -26,15 +27,16 @@ export class TopbarComponent {
   ];
 
   isUserMenuOpen = signal(false);
+  private cachedUser = signal<AuthResponse | null>(null);
+
+  currentUser = computed(() => this.cachedUser());
 
   constructor(
     public languageService: LanguageService,
     public themeService: ThemeService,
     private authService: AuthService
-  ) {}
-
-  get currentUser() {
-    return this.authService.getUser();
+  ) {
+    this.cachedUser.set(this.authService.getUser());
   }
 
   onMenuToggle(): void {
