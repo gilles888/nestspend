@@ -16,11 +16,14 @@ import { SelectModule } from 'primeng/select';
 import { AccountsService } from '../../core/api/services/accounts.service';
 import { AccountResponse } from '../../core/api/models/account-response';
 
-// Account type options
-const ACCOUNT_TYPES: { value: 'CASH' | 'BANK' | 'CARD'; label: string; icon: string; color: string }[] = [
-  { value: 'CASH', label: 'Cash', icon: 'pi-money-bill', color: '#22c55e' },
-  { value: 'BANK', label: 'Bank', icon: 'pi-building-columns', color: '#3b82f6' },
-  { value: 'CARD', label: 'Card', icon: 'pi-credit-card', color: '#8b5cf6' },
+// Default account type for new accounts
+const DEFAULT_ACCOUNT_TYPE: 'CASH' | 'BANK' | 'CARD' = 'BANK';
+
+// Account type configuration (icon and color for display)
+const ACCOUNT_TYPES: { value: 'CASH' | 'BANK' | 'CARD'; icon: string; color: string }[] = [
+  { value: 'CASH', icon: 'pi-money-bill', color: '#22c55e' },
+  { value: 'BANK', icon: 'pi-building-columns', color: '#3b82f6' },
+  { value: 'CARD', icon: 'pi-credit-card', color: '#8b5cf6' },
 ];
 
 @Component({
@@ -56,9 +59,8 @@ export class AccountsComponent implements OnInit {
   // Form
   accountForm!: FormGroup;
 
-  // Type options for dropdown
+  // Type options for dropdown (labels come from translation in the template)
   typeOptions = ACCOUNT_TYPES.map((type) => ({
-    label: type.label,
     value: type.value,
     icon: type.icon,
     color: type.color,
@@ -81,13 +83,13 @@ export class AccountsComponent implements OnInit {
   private initForm(): void {
     this.accountForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(80)]],
-      type: ['BANK', Validators.required],
+      type: [DEFAULT_ACCOUNT_TYPE, Validators.required],
     });
   }
 
-  getTypeInfo(type: string | undefined): { icon: string; color: string; label: string } {
+  getTypeInfo(type: string | undefined): { icon: string; color: string } {
     const found = ACCOUNT_TYPES.find((t) => t.value === type);
-    return found || { icon: 'pi-wallet', color: '#6b7280', label: 'Unknown' };
+    return found || { icon: 'pi-wallet', color: '#6b7280' };
   }
 
   async loadAccounts(): Promise<void> {
@@ -112,7 +114,7 @@ export class AccountsComponent implements OnInit {
     this.selectedAccount.set(null);
     this.accountForm.reset({
       name: '',
-      type: 'BANK',
+      type: DEFAULT_ACCOUNT_TYPE,
     });
     this.dialogVisible.set(true);
   }
@@ -122,7 +124,7 @@ export class AccountsComponent implements OnInit {
     this.selectedAccount.set(account);
     this.accountForm.patchValue({
       name: account.name ?? '',
-      type: account.type ?? 'BANK',
+      type: account.type ?? DEFAULT_ACCOUNT_TYPE,
     });
     this.dialogVisible.set(true);
   }
