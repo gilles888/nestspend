@@ -172,6 +172,9 @@ export class ImportTransactionsService {
               confidenceLabel: suggestion.confidenceLabel,
               ruleId: suggestion.ruleId,
             } as ClassificationSuggestionInfo,
+            // Pre-fill selected category with the suggestion (user can modify later)
+            selectedCategoryId: suggestion.categoryId,
+            selectedCategoryName: category?.name,
           };
         }
         return t;
@@ -287,6 +290,8 @@ export class ImportTransactionsService {
       txDate: this.formatDate(t.importedDate),
       type: t.type,
       amountCents: t.amountCents,
+      // Use selected category (may have been modified by user, or pre-filled from suggestion)
+      categoryId: t.selectedCategoryId || undefined,
       merchant: t.counterparty || undefined,
       note: t.description || undefined,
       counterpartyIban: t.iban || undefined,
@@ -301,6 +306,47 @@ export class ImportTransactionsService {
     });
 
     return response;
+  }
+
+  /**
+   * Update the selected category for a transaction.
+   * @param transactionIndex Index of the transaction in the parsed list
+   * @param categoryId Category ID to assign
+   * @param categoryName Category name for display
+   */
+  updateTransactionCategory(transactionIndex: number, categoryId: string | null, categoryName: string | null): void {
+    this._state.update((s) => {
+      if (!s.parseResult) return s;
+
+      const updatedTransactions = s.parseResult.transactions.map((t, idx) => {
+        if (idx === transactionIndex) {
+          return {
+            ...t,
+            selectedCategoryId: categoryId || undefined,
+            selectedCategoryName: categoryName || undefined,
+          };
+        }
+        return t;
+      });
+
+      const updatedParseResult = {
+        ...s.parseResult,
+        transactions: updatedTransactions,
+      };
+
+      return {
+        ...s,
+        parseResult: updatedParseResult,
+        transactionsToImport: updatedTransactions.filter((t) => t.status !== 'ERROR'),
+      };
+    });
+  }
+
+  /**
+   * Get all available categories (for dropdown).
+   */
+  getCategories(): CategoryResponse[] {
+    return Array.from(this.categoriesMap.values());
   }
 
   /**

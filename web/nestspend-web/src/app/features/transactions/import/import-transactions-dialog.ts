@@ -330,4 +330,32 @@ export class ImportTransactionsDialogComponent implements OnInit {
   } {
     return this.importService.getParseStats();
   }
+
+  /**
+   * Get category options for dropdown.
+   */
+  getCategoryOptions(): { label: string; value: string }[] {
+    return this.importService.getCategories().map((c) => ({
+      label: c.name || 'Unknown',
+      value: c.id || '',
+    }));
+  }
+
+  /**
+   * Handle category change for a transaction.
+   */
+  onCategoryChange(transaction: NormalizedImportedTransaction, categoryId: string | null): void {
+    const transactions = this.getParsedTransactions();
+    const index = transactions.indexOf(transaction);
+    if (index === -1) return;
+
+    const category = categoryId
+      ? this.importService.getCategories().find((c) => c.id === categoryId)
+      : null;
+    this.importService.updateTransactionCategory(
+      index,
+      categoryId,
+      category?.name || null
+    );
+  }
 }

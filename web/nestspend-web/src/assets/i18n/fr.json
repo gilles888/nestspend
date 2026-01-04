@@ -271,7 +271,7 @@
     "highConfidence": "Haute",
     "mediumConfidence": "Moyenne",
     "lowConfidence": "Faible",
-    "suggestedCategory": "Catégorie suggérée",
+    "suggestedCategory": "Catégorie",
     "confidenceScore": "Confiance : {{score}}%"
   }
 }

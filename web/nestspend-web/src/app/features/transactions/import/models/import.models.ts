@@ -41,6 +41,10 @@ export interface NormalizedImportedTransaction {
   errorMessage?: string;
   /** Classification suggestion from auto-categorization */
   suggestion?: ClassificationSuggestionInfo;
+  /** Selected category ID (initially from suggestion, can be modified by user) */
+  selectedCategoryId?: string;
+  /** Selected category name (for display) */
+  selectedCategoryName?: string;
 }
 
 /**

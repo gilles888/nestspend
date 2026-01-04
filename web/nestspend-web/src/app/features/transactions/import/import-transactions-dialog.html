@@ -233,19 +233,28 @@
                 {{ tx.description || '-' }}
               </td>
               <td>
-                @if (tx.suggestion?.categoryName) {
-                  <div class="flex items-center gap-2">
-                    <span class="truncate max-w-[120px]">{{ tx.suggestion.categoryName }}</span>
+                <div class="flex items-center gap-2">
+                  <p-select
+                    [options]="getCategoryOptions()"
+                    [ngModel]="tx.selectedCategoryId || null"
+                    (ngModelChange)="onCategoryChange(tx, $event)"
+                    optionLabel="label"
+                    optionValue="value"
+                    [placeholder]="'transactions.selectCategory' | translate"
+                    [filter]="true"
+                    filterBy="label"
+                    [showClear]="true"
+                    styleClass="w-full min-w-[140px]"
+                  ></p-select>
+                  @if (tx.suggestion?.confidenceLabel) {
                     <p-tag
                       [value]="tx.suggestion.confidenceLabel"
                       [severity]="getConfidenceSeverity(tx.suggestion.confidenceLabel)"
                       [pTooltip]="'import.confidenceScore' | translate: { score: tx.suggestion.confidence }"
                       styleClass="text-xs"
                     ></p-tag>
-                  </div>
-                } @else {
-                  <span class="text-text-muted dark:text-dark-text-muted">-</span>
-                }
+                  }
+                </div>
               </td>
             </tr>
           </ng-template>
