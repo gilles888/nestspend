@@ -146,6 +146,49 @@
         </div>
       </div>
 
+      <!-- Classification Stats -->
+      @if (getStats().categorized > 0) {
+        <div class="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+          <h4 class="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-3">
+            {{ 'import.autoClassification' | translate }}
+          </h4>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="text-center">
+              <p class="text-xl font-bold text-blue-700 dark:text-blue-300">
+                {{ getStats().categorized }}
+              </p>
+              <p class="text-xs text-blue-600 dark:text-blue-400">
+                {{ 'import.categorized' | translate }}
+              </p>
+            </div>
+            <div class="text-center">
+              <p class="text-xl font-bold text-green-700 dark:text-green-300">
+                {{ getStats().highConfidence }}
+              </p>
+              <p class="text-xs text-green-600 dark:text-green-400">
+                {{ 'import.highConfidence' | translate }}
+              </p>
+            </div>
+            <div class="text-center">
+              <p class="text-xl font-bold text-yellow-700 dark:text-yellow-300">
+                {{ getStats().mediumConfidence }}
+              </p>
+              <p class="text-xs text-yellow-600 dark:text-yellow-400">
+                {{ 'import.mediumConfidence' | translate }}
+              </p>
+            </div>
+            <div class="text-center">
+              <p class="text-xl font-bold text-orange-700 dark:text-orange-300">
+                {{ getStats().lowConfidence }}
+              </p>
+              <p class="text-xs text-orange-600 dark:text-orange-400">
+                {{ 'import.lowConfidence' | translate }}
+              </p>
+            </div>
+          </div>
+        </div>
+      }
+
       <!-- Transactions table -->
       <div class="overflow-hidden rounded-lg border border-border/50 dark:border-dark-border/50">
         <p-table
@@ -163,7 +206,7 @@
               <th class="text-left">{{ 'transactions.type' | translate }}</th>
               <th class="text-right">{{ 'transactions.amount' | translate }}</th>
               <th class="text-left">{{ 'import.counterparty' | translate }}</th>
-              <th class="text-left">{{ 'import.description' | translate }}</th>
+              <th class="text-left">{{ 'import.suggestedCategory' | translate }}</th>
             </tr>
           </ng-template>
           <ng-template #body let-tx>
@@ -185,8 +228,20 @@
               <td class="truncate max-w-[150px]" [pTooltip]="tx.counterparty">
                 {{ tx.counterparty || '-' }}
               </td>
-              <td class="truncate max-w-[200px]" [pTooltip]="tx.description">
-                {{ tx.description || '-' }}
+              <td>
+                @if (tx.suggestion?.categoryName) {
+                  <div class="flex items-center gap-2">
+                    <span class="truncate max-w-[120px]">{{ tx.suggestion.categoryName }}</span>
+                    <p-tag
+                      [value]="tx.suggestion.confidenceLabel"
+                      [severity]="getConfidenceSeverity(tx.suggestion.confidenceLabel)"
+                      [pTooltip]="'import.confidenceScore' | translate: { score: tx.suggestion.confidence }"
+                      styleClass="text-xs"
+                    ></p-tag>
+                  </div>
+                } @else {
+                  <span class="text-text-muted dark:text-dark-text-muted">-</span>
+                }
               </td>
             </tr>
           </ng-template>

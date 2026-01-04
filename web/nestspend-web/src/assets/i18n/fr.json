@@ -218,6 +218,13 @@
     "previous": "Précédent",
     "next": "Suivant",
     "finish": "Terminer",
-    "importButton": "Importer"
+    "importButton": "Importer",
+    "autoClassification": "Classification automatique",
+    "categorized": "Catégorisées",
+    "highConfidence": "Haute",
+    "mediumConfidence": "Moyenne",
+    "lowConfidence": "Faible",
+    "suggestedCategory": "Catégorie suggérée",
+    "confidenceScore": "Confiance : {{score}}%"
   }
 }

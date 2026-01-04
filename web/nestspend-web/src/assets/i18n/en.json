@@ -218,6 +218,13 @@
     "previous": "Previous",
     "next": "Next",
     "finish": "Finish",
-    "importButton": "Import"
+    "importButton": "Import",
+    "autoClassification": "Auto-Classification",
+    "categorized": "Categorized",
+    "highConfidence": "High",
+    "mediumConfidence": "Medium",
+    "lowConfidence": "Low",
+    "suggestedCategory": "Suggested Category",
+    "confidenceScore": "Confidence: {{score}}%"
   }
 }

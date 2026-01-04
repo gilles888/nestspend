@@ -1,4 +1,20 @@
 /**
+ * Classification suggestion for a transaction
+ */
+export interface ClassificationSuggestionInfo {
+  /** Suggested category ID */
+  categoryId?: string;
+  /** Suggested category name */
+  categoryName?: string;
+  /** Confidence score (0-100) */
+  confidence?: number;
+  /** Confidence label */
+  confidenceLabel?: 'HIGH' | 'MEDIUM' | 'LOW';
+  /** Rule ID that matched */
+  ruleId?: string;
+}
+
+/**
  * Represents a single transaction row parsed from a bank file.
  * This is the normalized internal structure before converting to API format.
  */
@@ -23,6 +39,8 @@ export interface NormalizedImportedTransaction {
   status: 'OK' | 'WARNING' | 'ERROR';
   /** Error/warning message if any */
   errorMessage?: string;
+  /** Classification suggestion from auto-categorization */
+  suggestion?: ClassificationSuggestionInfo;
 }
 
 /**

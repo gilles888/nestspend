@@ -292,6 +292,19 @@ export class ImportTransactionsDialogComponent implements OnInit {
     return type === 'INCOME' ? 'success' : 'danger';
   }
 
+  getConfidenceSeverity(confidenceLabel: string | undefined): 'success' | 'warn' | 'danger' | 'secondary' {
+    switch (confidenceLabel) {
+      case 'HIGH':
+        return 'success';
+      case 'MEDIUM':
+        return 'warn';
+      case 'LOW':
+        return 'danger';
+      default:
+        return 'secondary';
+    }
+  }
+
   formatCentsToAmount(cents: number): number {
     return cents / 100;
   }
@@ -304,7 +317,17 @@ export class ImportTransactionsDialogComponent implements OnInit {
     return this.importService.state().transactionsToImport || [];
   }
 
-  getStats(): { total: number; ok: number; warnings: number; errors: number; duplicates: number } {
+  getStats(): {
+    total: number;
+    ok: number;
+    warnings: number;
+    errors: number;
+    duplicates: number;
+    categorized: number;
+    highConfidence: number;
+    mediumConfidence: number;
+    lowConfidence: number;
+  } {
     return this.importService.getParseStats();
   }
 }

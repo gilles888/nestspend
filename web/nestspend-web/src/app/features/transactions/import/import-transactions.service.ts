@@ -1,7 +1,11 @@
 import { Injectable, signal } from '@angular/core';
 import { TransactionsService } from '../../../core/api/services/transactions.service';
+import { ClassificationService } from '../../../core/api/services/classification.service';
+import { CategoriesService } from '../../../core/api/services/categories.service';
 import { ImportTransactionItem } from '../../../core/api/models/import-transaction-item';
 import { ImportTransactionResponse } from '../../../core/api/models/import-transaction-response';
+import { TransactionToClassify } from '../../../core/api/models/transaction-to-classify';
+import { CategoryResponse } from '../../../core/api/models/category-response';
 import { BankParserFactory } from './parsers/bank-parser-factory';
 import {
   NormalizedImportedTransaction,
@@ -9,6 +13,7 @@ import {
   ParseResult,
   ImportWizardState,
   ImportStep,
+  ClassificationSuggestionInfo,
 } from './models/import.models';
 
 /**
@@ -37,8 +42,13 @@ export class ImportTransactionsService {
 
   readonly state = this._state.asReadonly();
 
+  // Categories cache for displaying names
+  private categoriesMap: Map<string, CategoryResponse> = new Map();
+
   constructor(
     private transactionsService: TransactionsService,
+    private classificationService: ClassificationService,
+    private categoriesService: CategoriesService,
     private parserFactory: BankParserFactory
   ) {}
 
@@ -98,15 +108,100 @@ export class ImportTransactionsService {
       detectedBankType !== 'UNKNOWN' ? detectedBankType : undefined
     );
 
+    // Apply classification suggestions to parsed transactions
+    const transactionsWithSuggestions = await this.applyClassificationSuggestions(
+      parseResult.transactions
+    );
+
+    const updatedParseResult = {
+      ...parseResult,
+      transactions: transactionsWithSuggestions,
+    };
+
     this._state.update((s) => ({
       ...s,
       file,
-      parseResult,
+      parseResult: updatedParseResult,
       bankType: parseResult.bankType,
-      transactionsToImport: parseResult.transactions.filter((t) => t.status !== 'ERROR'),
+      transactionsToImport: transactionsWithSuggestions.filter((t) => t.status !== 'ERROR'),
     }));
 
-    return parseResult;
+    return updatedParseResult;
+  }
+
+  /**
+   * Apply classification suggestions to transactions.
+   */
+  private async applyClassificationSuggestions(
+    transactions: NormalizedImportedTransaction[]
+  ): Promise<NormalizedImportedTransaction[]> {
+    if (transactions.length === 0) {
+      return transactions;
+    }
+
+    try {
+      // Load categories for name lookup
+      await this.loadCategories();
+
+      // Build request for classification API
+      const transactionsToClassify: TransactionToClassify[] = transactions.map((t) => ({
+        merchant: t.counterparty || undefined,
+        communication: t.description || undefined,
+        iban: t.iban || undefined,
+        amount: t.amountCents,
+        date: this.formatDate(t.importedDate),
+      }));
+
+      // Call classification API
+      const response = await this.classificationService.suggest({
+        body: { transactions: transactionsToClassify },
+      });
+
+      // Apply suggestions to transactions
+      const suggestions = response.suggestions || [];
+      return transactions.map((t, index) => {
+        const suggestion = suggestions[index];
+        if (suggestion && suggestion.categoryId) {
+          const category = this.categoriesMap.get(suggestion.categoryId);
+          return {
+            ...t,
+            suggestion: {
+              categoryId: suggestion.categoryId,
+              categoryName: category?.name,
+              confidence: suggestion.confidence,
+              confidenceLabel: suggestion.confidenceLabel,
+              ruleId: suggestion.ruleId,
+            } as ClassificationSuggestionInfo,
+          };
+        }
+        return t;
+      });
+    } catch (error) {
+      console.error('Error applying classification suggestions:', error);
+      // Return transactions without suggestions if classification fails
+      return transactions;
+    }
+  }
+
+  /**
+   * Load categories and cache them.
+   */
+  private async loadCategories(): Promise<void> {
+    if (this.categoriesMap.size > 0) {
+      return; // Already loaded
+    }
+
+    try {
+      const categories = await this.categoriesService.getAllCategories();
+      this.categoriesMap.clear();
+      for (const cat of categories) {
+        if (cat.id) {
+          this.categoriesMap.set(cat.id, cat);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading categories:', error);
+    }
   }
 
   /**
@@ -214,6 +309,10 @@ export class ImportTransactionsService {
     warnings: number;
     errors: number;
     duplicates: number;
+    categorized: number;
+    highConfidence: number;
+    mediumConfidence: number;
+    lowConfidence: number;
   } {
     const state = this._state();
     const transactions = state.parseResult?.transactions || [];
@@ -227,12 +326,28 @@ export class ImportTransactionsService {
       return existingKeys.has(key);
     }).length;
 
+    // Classification statistics
+    const categorized = transactions.filter((t) => t.suggestion?.categoryId).length;
+    const highConfidence = transactions.filter(
+      (t) => t.suggestion?.confidenceLabel === 'HIGH'
+    ).length;
+    const mediumConfidence = transactions.filter(
+      (t) => t.suggestion?.confidenceLabel === 'MEDIUM'
+    ).length;
+    const lowConfidence = transactions.filter(
+      (t) => t.suggestion?.confidenceLabel === 'LOW'
+    ).length;
+
     return {
       total: transactions.length,
       ok,
       warnings,
       errors,
       duplicates,
+      categorized,
+      highConfidence,
+      mediumConfidence,
+      lowConfidence,
     };
   }
 
