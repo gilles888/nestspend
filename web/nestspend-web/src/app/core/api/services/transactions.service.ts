@@ -9,6 +9,8 @@ import { BaseService } from '../base-service';
 import { ApiConfiguration } from '../api-configuration';
 import { StrictHttpResponse } from '../strict-http-response';
 
+import { checkExisting } from '../fn/transactions/check-existing';
+import { CheckExisting$Params } from '../fn/transactions/check-existing';
 import { createTransaction } from '../fn/transactions/create-transaction';
 import { CreateTransaction$Params } from '../fn/transactions/create-transaction';
 import { deleteTransaction } from '../fn/transactions/delete-transaction';
@@ -17,6 +19,10 @@ import { getAllTransactions } from '../fn/transactions/get-all-transactions';
 import { GetAllTransactions$Params } from '../fn/transactions/get-all-transactions';
 import { getTransactionById } from '../fn/transactions/get-transaction-by-id';
 import { GetTransactionById$Params } from '../fn/transactions/get-transaction-by-id';
+import { ImportCheckResponse } from '../models/import-check-response';
+import { ImportTransactionResponse } from '../models/import-transaction-response';
+import { importTransactions } from '../fn/transactions/import-transactions';
+import { ImportTransactions$Params } from '../fn/transactions/import-transactions';
 import { TransactionResponse } from '../models/transaction-response';
 import { updateTransaction } from '../fn/transactions/update-transaction';
 import { UpdateTransaction$Params } from '../fn/transactions/update-transaction';
@@ -194,6 +200,72 @@ export class TransactionsService extends BaseService {
   createTransaction(params: CreateTransaction$Params, context?: HttpContext): Promise<TransactionResponse> {
     const resp = this.createTransaction$Response(params, context);
     return resp.then((r: StrictHttpResponse<TransactionResponse>): TransactionResponse => r.body);
+  }
+
+  /** Path part for operation `importTransactions()` */
+  static readonly ImportTransactionsPath = '/api/transactions/import';
+
+  /**
+   * Bulk import transactions.
+   *
+   * Imports multiple transactions at once for the specified account. Automatically performs deduplication based on date, amount, and merchant. Transactions that already exist will be skipped.
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `importTransactions()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  importTransactions$Response(params: ImportTransactions$Params, context?: HttpContext): Promise<StrictHttpResponse<ImportTransactionResponse>> {
+    const obs = importTransactions(this.http, this.rootUrl, params, context);
+    return firstValueFrom(obs);
+  }
+
+  /**
+   * Bulk import transactions.
+   *
+   * Imports multiple transactions at once for the specified account. Automatically performs deduplication based on date, amount, and merchant. Transactions that already exist will be skipped.
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `importTransactions$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  importTransactions(params: ImportTransactions$Params, context?: HttpContext): Promise<ImportTransactionResponse> {
+    const resp = this.importTransactions$Response(params, context);
+    return resp.then((r: StrictHttpResponse<ImportTransactionResponse>): ImportTransactionResponse => r.body);
+  }
+
+  /** Path part for operation `checkExisting()` */
+  static readonly CheckExistingPath = '/api/transactions/import/check';
+
+  /**
+   * Check for existing transactions.
+   *
+   * Checks which transactions from the provided list already exist in the database. Used for deduplication before import. Keys are in format: DATE|AMOUNT|MERCHANT
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `checkExisting()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  checkExisting$Response(params: CheckExisting$Params, context?: HttpContext): Promise<StrictHttpResponse<ImportCheckResponse>> {
+    const obs = checkExisting(this.http, this.rootUrl, params, context);
+    return firstValueFrom(obs);
+  }
+
+  /**
+   * Check for existing transactions.
+   *
+   * Checks which transactions from the provided list already exist in the database. Used for deduplication before import. Keys are in format: DATE|AMOUNT|MERCHANT
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `checkExisting$Response()` instead.
+   *
+   * This method sends `application/json` and handles request body of type `application/json`.
+   */
+  checkExisting(params: CheckExisting$Params, context?: HttpContext): Promise<ImportCheckResponse> {
+    const resp = this.checkExisting$Response(params, context);
+    return resp.then((r: StrictHttpResponse<ImportCheckResponse>): ImportCheckResponse => r.body);
   }
 
 }

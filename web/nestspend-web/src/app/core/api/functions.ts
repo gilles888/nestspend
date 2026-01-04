@@ -11,6 +11,10 @@ export type { GetAllTransactions$Params as GetAllTransactions$Params } from './f
 export { getAllTransactions as getAllTransactions } from './fn/transactions/get-all-transactions';
 export type { CreateTransaction$Params as CreateTransaction$Params } from './fn/transactions/create-transaction';
 export { createTransaction as createTransaction } from './fn/transactions/create-transaction';
+export type { ImportTransactions$Params as ImportTransactions$Params } from './fn/transactions/import-transactions';
+export { importTransactions as importTransactions } from './fn/transactions/import-transactions';
+export type { CheckExisting$Params as CheckExisting$Params } from './fn/transactions/check-existing';
+export { checkExisting as checkExisting } from './fn/transactions/check-existing';
 export type { GetCategoryById$Params as GetCategoryById$Params } from './fn/categories/get-category-by-id';
 export { getCategoryById as getCategoryById } from './fn/categories/get-category-by-id';
 export type { UpdateCategory$Params as UpdateCategory$Params } from './fn/categories/update-category';

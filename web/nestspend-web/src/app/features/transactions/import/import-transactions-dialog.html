@@ -1,0 +1,378 @@
+<p-dialog
+  [header]="'import.title' | translate"
+  [modal]="true"
+  [visible]="visible"
+  (visibleChange)="visibleChange.emit($event)"
+  [style]="{ width: '900px', maxHeight: '90vh' }"
+  [breakpoints]="{ '960px': '85vw', '640px': '95vw' }"
+  [closable]="activeStepIndex() < 4"
+  (onHide)="close()"
+>
+  <!-- Steps indicator -->
+  <div class="mb-6">
+    <p-steps [model]="steps" [activeIndex]="activeStepIndex()" [readonly]="true"></p-steps>
+  </div>
+
+  <!-- Loading spinner -->
+  @if (loading()) {
+    <div class="flex items-center justify-center py-12">
+      <p-progressspinner strokeWidth="4"></p-progressspinner>
+    </div>
+  }
+
+  <!-- Step 1: Bank & Account Selection -->
+  @if (activeStepIndex() === 0 && !loading()) {
+    <div class="space-y-6">
+      <p-message severity="info" [text]="'import.step1Description' | translate"></p-message>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Bank Selection -->
+        <div>
+          <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-2">
+            {{ 'import.selectBank' | translate }} *
+          </label>
+          <p-select
+            [options]="getBankTypeOptions()"
+            [ngModel]="selectedBankType()"
+            (ngModelChange)="onBankTypeChange($event)"
+            optionLabel="label"
+            optionValue="value"
+            [placeholder]="'import.selectBankPlaceholder' | translate"
+            styleClass="w-full"
+          ></p-select>
+        </div>
+
+        <!-- Account Selection -->
+        <div>
+          <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-2">
+            {{ 'import.selectAccount' | translate }} *
+          </label>
+          <p-select
+            [options]="getAccountOptions()"
+            [ngModel]="selectedAccountId()"
+            (ngModelChange)="onAccountChange($event)"
+            optionLabel="label"
+            optionValue="value"
+            [placeholder]="'import.selectAccountPlaceholder' | translate"
+            [filter]="true"
+            filterBy="label"
+            styleClass="w-full"
+          ></p-select>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Step 2: File Upload -->
+  @if (activeStepIndex() === 1 && !loading()) {
+    <div class="space-y-6">
+      <p-message severity="info" [text]="'import.step2Description' | translate"></p-message>
+
+      <!-- File Upload -->
+      <div>
+        <p-fileUpload
+          mode="basic"
+          accept=".csv,.txt"
+          [maxFileSize]="MAX_FILE_SIZE"
+          [chooseLabel]="'import.chooseFile' | translate"
+          (onSelect)="onFileSelect($event)"
+          [auto]="true"
+          styleClass="w-full"
+        ></p-fileUpload>
+      </div>
+
+      <!-- File info -->
+      @if (uploadedFile()) {
+        <div class="p-4 bg-surface-100 dark:bg-surface-800 rounded-lg">
+          <p class="font-medium text-text-main dark:text-dark-text-main">
+            {{ 'import.selectedFile' | translate }}: {{ uploadedFile()!.name }}
+          </p>
+          <p class="text-sm text-text-muted dark:text-dark-text-muted">
+            {{ 'import.fileSize' | translate }}: {{ (uploadedFile()!.size / 1024).toFixed(2) }} KB
+          </p>
+        </div>
+      }
+
+      <!-- Raw preview -->
+      @if (rawPreview().length > 0) {
+        <div>
+          <h4 class="text-sm font-medium text-text-main dark:text-dark-text-main mb-2">
+            {{ 'import.rawPreview' | translate }}
+          </h4>
+          <div
+            class="p-3 bg-surface-50 dark:bg-surface-900 rounded-lg overflow-x-auto text-sm font-mono"
+          >
+            @for (line of rawPreview(); track $index) {
+              <div class="truncate">{{ line }}</div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Step 3: Preview Parsed Data -->
+  @if (activeStepIndex() === 2 && !loading()) {
+    <div class="space-y-6">
+      <!-- Stats -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="p-4 bg-surface-100 dark:bg-surface-800 rounded-lg text-center">
+          <p class="text-2xl font-bold text-text-main dark:text-dark-text-main">
+            {{ getStats().total }}
+          </p>
+          <p class="text-sm text-text-muted dark:text-dark-text-muted">
+            {{ 'import.totalRows' | translate }}
+          </p>
+        </div>
+        <div class="p-4 bg-green-100 dark:bg-green-900 rounded-lg text-center">
+          <p class="text-2xl font-bold text-green-700 dark:text-green-300">{{ getStats().ok }}</p>
+          <p class="text-sm text-green-600 dark:text-green-400">
+            {{ 'import.validRows' | translate }}
+          </p>
+        </div>
+        <div class="p-4 bg-yellow-100 dark:bg-yellow-900 rounded-lg text-center">
+          <p class="text-2xl font-bold text-yellow-700 dark:text-yellow-300">
+            {{ getStats().warnings }}
+          </p>
+          <p class="text-sm text-yellow-600 dark:text-yellow-400">
+            {{ 'import.warningRows' | translate }}
+          </p>
+        </div>
+        <div class="p-4 bg-red-100 dark:bg-red-900 rounded-lg text-center">
+          <p class="text-2xl font-bold text-red-700 dark:text-red-300">{{ getStats().errors }}</p>
+          <p class="text-sm text-red-600 dark:text-red-400">
+            {{ 'import.errorRows' | translate }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Transactions table -->
+      <div class="overflow-hidden rounded-lg border border-border/50 dark:border-dark-border/50">
+        <p-table
+          [value]="getParsedTransactions()"
+          [tableStyle]="{ 'min-width': '100%' }"
+          [paginator]="true"
+          [rows]="10"
+          [rowsPerPageOptions]="[10, 25, 50]"
+          styleClass="p-datatable-sm"
+        >
+          <ng-template #header>
+            <tr>
+              <th class="text-left">{{ 'import.status' | translate }}</th>
+              <th class="text-left">{{ 'transactions.date' | translate }}</th>
+              <th class="text-left">{{ 'transactions.type' | translate }}</th>
+              <th class="text-right">{{ 'transactions.amount' | translate }}</th>
+              <th class="text-left">{{ 'import.counterparty' | translate }}</th>
+              <th class="text-left">{{ 'import.description' | translate }}</th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-tx>
+            <tr>
+              <td>
+                <p-tag
+                  [value]="tx.status"
+                  [severity]="getStatusSeverity(tx.status)"
+                  [pTooltip]="tx.errorMessage"
+                ></p-tag>
+              </td>
+              <td>{{ tx.importedDate | date: 'shortDate' }}</td>
+              <td>
+                <p-tag [value]="tx.type" [severity]="getTypeSeverity(tx.type)"></p-tag>
+              </td>
+              <td class="text-right font-mono">
+                {{ formatCentsToAmount(tx.amountCents) | currency }}
+              </td>
+              <td class="truncate max-w-[150px]" [pTooltip]="tx.counterparty">
+                {{ tx.counterparty || '-' }}
+              </td>
+              <td class="truncate max-w-[200px]" [pTooltip]="tx.description">
+                {{ tx.description || '-' }}
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+    </div>
+  }
+
+  <!-- Step 4: Deduplication & Summary -->
+  @if (activeStepIndex() === 3 && !loading()) {
+    <div class="space-y-6">
+      <p-message severity="info" [text]="'import.step4Description' | translate"></p-message>
+
+      <!-- Summary -->
+      <div class="grid grid-cols-2 gap-4">
+        <div class="p-4 bg-green-100 dark:bg-green-900 rounded-lg">
+          <p class="text-xl font-bold text-green-700 dark:text-green-300">
+            {{ getTransactionsToImport().length - getStats().duplicates }}
+          </p>
+          <p class="text-sm text-green-600 dark:text-green-400">
+            {{ 'import.toBeImported' | translate }}
+          </p>
+        </div>
+        <div class="p-4 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
+          <p class="text-xl font-bold text-yellow-700 dark:text-yellow-300">
+            {{ getStats().duplicates }}
+          </p>
+          <p class="text-sm text-yellow-600 dark:text-yellow-400">
+            {{ 'import.duplicatesFound' | translate }}
+          </p>
+        </div>
+      </div>
+
+      @if (getStats().duplicates > 0) {
+        <p-message severity="warn" [text]="'import.duplicatesWillBeSkipped' | translate"></p-message>
+      }
+
+      <!-- Final preview table -->
+      <div class="overflow-hidden rounded-lg border border-border/50 dark:border-dark-border/50">
+        <p-table
+          [value]="getTransactionsToImport()"
+          [tableStyle]="{ 'min-width': '100%' }"
+          [paginator]="true"
+          [rows]="10"
+          styleClass="p-datatable-sm"
+        >
+          <ng-template #header>
+            <tr>
+              <th class="text-left">{{ 'import.status' | translate }}</th>
+              <th class="text-left">{{ 'transactions.date' | translate }}</th>
+              <th class="text-left">{{ 'transactions.type' | translate }}</th>
+              <th class="text-right">{{ 'transactions.amount' | translate }}</th>
+              <th class="text-left">{{ 'import.counterparty' | translate }}</th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-tx>
+            <tr [class.opacity-50]="tx.status === 'WARNING'">
+              <td>
+                <p-tag
+                  [value]="tx.status === 'WARNING' ? ('import.duplicate' | translate) : 'OK'"
+                  [severity]="tx.status === 'WARNING' ? 'warn' : 'success'"
+                ></p-tag>
+              </td>
+              <td>{{ tx.importedDate | date: 'shortDate' }}</td>
+              <td>
+                <p-tag [value]="tx.type" [severity]="getTypeSeverity(tx.type)"></p-tag>
+              </td>
+              <td class="text-right font-mono">
+                {{ formatCentsToAmount(tx.amountCents) | currency }}
+              </td>
+              <td class="truncate max-w-[200px]">{{ tx.counterparty || '-' }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+    </div>
+  }
+
+  <!-- Step 5: Results -->
+  @if (activeStepIndex() === 4 && !loading()) {
+    <div class="space-y-6">
+      @if (importResult()) {
+        <div class="text-center py-8">
+          <div
+            class="flex items-center justify-center w-20 h-20 mx-auto rounded-full bg-green-100 dark:bg-green-900 mb-6"
+          >
+            <i class="pi pi-check text-4xl text-green-600 dark:text-green-400"></i>
+          </div>
+          <h3 class="text-xl font-bold text-text-main dark:text-dark-text-main mb-4">
+            {{ 'import.importComplete' | translate }}
+          </h3>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4">
+          <div class="p-4 bg-green-100 dark:bg-green-900 rounded-lg text-center">
+            <p class="text-3xl font-bold text-green-700 dark:text-green-300">
+              {{ importResult()!.createdCount }}
+            </p>
+            <p class="text-sm text-green-600 dark:text-green-400">
+              {{ 'import.created' | translate }}
+            </p>
+          </div>
+          <div class="p-4 bg-yellow-100 dark:bg-yellow-900 rounded-lg text-center">
+            <p class="text-3xl font-bold text-yellow-700 dark:text-yellow-300">
+              {{ importResult()!.skippedCount }}
+            </p>
+            <p class="text-sm text-yellow-600 dark:text-yellow-400">
+              {{ 'import.skipped' | translate }}
+            </p>
+          </div>
+          <div class="p-4 bg-red-100 dark:bg-red-900 rounded-lg text-center">
+            <p class="text-3xl font-bold text-red-700 dark:text-red-300">
+              {{ importResult()!.errorCount }}
+            </p>
+            <p class="text-sm text-red-600 dark:text-red-400">
+              {{ 'import.errors' | translate }}
+            </p>
+          </div>
+        </div>
+
+        @if (importResult()!.errors && importResult()!.errors!.length > 0) {
+          <div class="mt-4">
+            <h4 class="font-medium text-red-600 mb-2">{{ 'import.errorDetails' | translate }}</h4>
+            <ul class="list-disc list-inside text-sm text-red-500">
+              @for (error of importResult()!.errors; track error.index) {
+                <li>{{ 'import.rowError' | translate: { index: error.index, message: error.message } }}</li>
+              }
+            </ul>
+          </div>
+        }
+      }
+    </div>
+  }
+
+  <!-- Footer buttons -->
+  <ng-template #footer>
+    <div class="flex justify-between gap-3 pt-4 border-t border-border/50 dark:border-dark-border/50">
+      @if (activeStepIndex() < 4) {
+        <p-button
+          [label]="'import.cancel' | translate"
+          severity="secondary"
+          (onClick)="close()"
+          [disabled]="loading()"
+        ></p-button>
+      }
+
+      <div class="flex gap-3">
+        @if (activeStepIndex() > 0 && activeStepIndex() < 4) {
+          <p-button
+            [label]="'import.previous' | translate"
+            icon="pi pi-arrow-left"
+            severity="secondary"
+            (onClick)="previousStep()"
+            [disabled]="loading()"
+          ></p-button>
+        }
+
+        @if (activeStepIndex() < 3) {
+          <p-button
+            [label]="'import.next' | translate"
+            icon="pi pi-arrow-right"
+            iconPos="right"
+            (onClick)="nextStep()"
+            [disabled]="loading()"
+          ></p-button>
+        }
+
+        @if (activeStepIndex() === 3) {
+          <p-button
+            [label]="'import.startImport' | translate"
+            icon="pi pi-upload"
+            (onClick)="nextStep()"
+            [disabled]="loading() || getTransactionsToImport().length === 0"
+          ></p-button>
+        }
+
+        @if (activeStepIndex() === 4) {
+          <p-button
+            [label]="'import.finish' | translate"
+            icon="pi pi-check"
+            (onClick)="finish()"
+          ></p-button>
+        }
+      </div>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<p-toast></p-toast>

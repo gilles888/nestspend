@@ -1,6 +1,10 @@
 package be.gilmotech.nestspend.controller;
 
 import be.gilmotech.nestspend.domain.enums.TransactionType;
+import be.gilmotech.nestspend.dto.transaction.ImportCheckRequest;
+import be.gilmotech.nestspend.dto.transaction.ImportCheckResponse;
+import be.gilmotech.nestspend.dto.transaction.ImportTransactionRequest;
+import be.gilmotech.nestspend.dto.transaction.ImportTransactionResponse;
 import be.gilmotech.nestspend.dto.transaction.TransactionCreateRequest;
 import be.gilmotech.nestspend.dto.transaction.TransactionResponse;
 import be.gilmotech.nestspend.dto.transaction.TransactionUpdateRequest;
@@ -143,5 +147,48 @@ public class TransactionController {
     public ResponseEntity<Void> deleteTransaction(@PathVariable UUID id) {
         transactionService.deleteTransaction(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/import")
+    @Operation(
+            summary = "Bulk import transactions",
+            description = "Imports multiple transactions at once for the specified account. " +
+                    "Automatically performs deduplication based on date, amount, and merchant. " +
+                    "Transactions that already exist will be skipped."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Import completed - check response for details"),
+            @ApiResponse(responseCode = "400", description = "Validation error - Invalid input data",
+                    content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token",
+                    content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "404", description = "Not Found - Account not found or belongs to different household",
+                    content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<ImportTransactionResponse> importTransactions(
+            @Valid @RequestBody ImportTransactionRequest request) {
+        ImportTransactionResponse response = transactionService.bulkImport(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/import/check")
+    @Operation(
+            summary = "Check for existing transactions",
+            description = "Checks which transactions from the provided list already exist in the database. " +
+                    "Used for deduplication before import. Keys are in format: DATE|AMOUNT|MERCHANT"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Check completed - returns existing keys"),
+            @ApiResponse(responseCode = "400", description = "Validation error - Invalid input data",
+                    content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token",
+                    content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "404", description = "Not Found - Account not found or belongs to different household",
+                    content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<ImportCheckResponse> checkExisting(
+            @Valid @RequestBody ImportCheckRequest request) {
+        ImportCheckResponse response = transactionService.checkExisting(request);
+        return ResponseEntity.ok(response);
     }
 }

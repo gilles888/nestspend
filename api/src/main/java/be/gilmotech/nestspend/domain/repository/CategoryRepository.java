@@ -46,4 +46,21 @@ public interface CategoryRepository extends JpaRepository<Category, UUID> {
      * @return true if exists
      */
     boolean existsByHouseholdIdAndNameAndIdNot(UUID householdId, String name, UUID id);
+
+    /**
+     * Find a category by name (case-insensitive) in the household.
+     *
+     * @param householdId the household ID
+     * @param name        the category name
+     * @return optional category
+     */
+    Optional<Category> findByHouseholdIdAndNameIgnoreCase(UUID householdId, String name);
+
+    /**
+     * Find the first category in a household (for fallback when no specific category is specified).
+     *
+     * @param householdId the household ID
+     * @return optional category
+     */
+    Optional<Category> findFirstByHouseholdId(UUID householdId);
 }

@@ -97,4 +97,26 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
             @Param("accountId") UUID accountId,
             @Param("type") TransactionType type
     );
+
+    /**
+     * Find transactions for a specific account within a date range.
+     * Used for deduplication during import.
+     *
+     * @param accountId the account ID
+     * @param householdId the household ID (for security)
+     * @param fromDate start date (inclusive)
+     * @param toDate end date (inclusive)
+     * @return list of transactions in the specified period
+     */
+    @Query("SELECT t FROM Transaction t " +
+           "WHERE t.account.id = :accountId " +
+           "AND t.household.id = :householdId " +
+           "AND t.txDate >= :fromDate " +
+           "AND t.txDate <= :toDate")
+    List<Transaction> findByAccountIdAndHouseholdIdAndDateRange(
+            @Param("accountId") UUID accountId,
+            @Param("householdId") UUID householdId,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate
+    );
 }

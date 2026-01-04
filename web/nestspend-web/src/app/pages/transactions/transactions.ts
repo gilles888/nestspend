@@ -23,6 +23,7 @@ import { AccountsService } from '../../core/api/services/accounts.service';
 import { TransactionResponse } from '../../core/api/models/transaction-response';
 import { CategoryResponse } from '../../core/api/models/category-response';
 import { AccountResponse } from '../../core/api/models/account-response';
+import { ImportTransactionsDialogComponent } from '../../features/transactions/import/import-transactions-dialog';
 
 @Component({
   selector: 'app-transactions',
@@ -46,6 +47,7 @@ import { AccountResponse } from '../../core/api/models/account-response';
     ToastModule,
     TagModule,
     TooltipModule,
+    ImportTransactionsDialogComponent,
   ],
   providers: [ConfirmationService, MessageService],
   templateUrl: './transactions.html',
@@ -61,6 +63,9 @@ export class TransactionsComponent implements OnInit {
   dialogVisible = signal(false);
   dialogMode = signal<'add' | 'edit'>('add');
   selectedTransaction = signal<TransactionResponse | null>(null);
+
+  // Import dialog state
+  importDialogVisible = signal(false);
 
   // Filter state
   filterFrom = signal<Date | null>(null);
@@ -363,5 +368,15 @@ export class TransactionsComponent implements OnInit {
       { label: this.translateService.instant('transactions.expense'), value: 'EXPENSE' },
       { label: this.translateService.instant('transactions.income'), value: 'INCOME' },
     ];
+  }
+
+  // Import functionality
+  openImportDialog(): void {
+    this.importDialogVisible.set(true);
+  }
+
+  onImportCompleted(): void {
+    this.importDialogVisible.set(false);
+    this.loadData();
   }
 }
