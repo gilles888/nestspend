@@ -5,3 +5,4 @@ export * from './belfius-txt-parser';
 export * from './keytrade-csv-parser';
 export * from './ing-csv-parser';
 export * from './ing-txt-parser';
+export * from './parse-utils';

@@ -52,6 +52,9 @@ export class ImportTransactionsDialogComponent implements OnInit {
   @Output() visibleChange = new EventEmitter<boolean>();
   @Output() importCompleted = new EventEmitter<void>();
 
+  // Configuration
+  readonly MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+
   // State signals
   loading = signal(false);
   accounts = signal<AccountResponse[]>([]);

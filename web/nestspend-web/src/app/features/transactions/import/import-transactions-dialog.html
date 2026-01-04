@@ -73,7 +73,7 @@
         <p-fileUpload
           mode="basic"
           accept=".csv,.txt"
-          [maxFileSize]="10000000"
+          [maxFileSize]="MAX_FILE_SIZE"
           [chooseLabel]="'import.chooseFile' | translate"
           (onSelect)="onFileSelect($event)"
           [auto]="true"

@@ -49,9 +49,9 @@ export class BankParserFactory {
    * @returns Parser instance or null if not found
    */
   getParser(bankType: BankType, fileName: string): BankImportParser | null {
-    const isCsv =
-      fileName.toLowerCase().endsWith('.csv') || fileName.toLowerCase().endsWith('.txt') === false;
-    const isTxt = fileName.toLowerCase().endsWith('.txt');
+    const lowerFileName = fileName.toLowerCase();
+    const isCsv = lowerFileName.endsWith('.csv');
+    const isTxt = lowerFileName.endsWith('.txt');
 
     for (const parser of this.parsers) {
       if (parser.getBankType() === bankType) {

@@ -224,9 +224,12 @@ public class TransactionService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         // Find default/uncategorized category or first available
+        // If no category exists, transactions cannot be imported - at least one category is required
         Category defaultCategory = categoryRepository.findByHouseholdIdAndNameIgnoreCase(householdId, "Uncategorized")
                 .orElseGet(() -> categoryRepository.findFirstByHouseholdId(householdId)
-                        .orElseThrow(() -> new ResourceNotFoundException("No categories found. Please create at least one category.")));
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "No categories available. Imported transactions require a category. " +
+                                "Please create at least one category before importing.")));
 
         // Calculate date range for deduplication
         LocalDate minDate = request.items().stream()
