@@ -180,7 +180,7 @@
                 <p-tag [value]="tx.type" [severity]="getTypeSeverity(tx.type)"></p-tag>
               </td>
               <td class="text-right font-mono">
-                {{ formatCentsToAmount(tx.amountCents) | currency }}
+                {{ formatCentsToAmount(tx.amountCents) | currency:'EUR' }}
               </td>
               <td class="truncate max-w-[150px]" [pTooltip]="tx.counterparty">
                 {{ tx.counterparty || '-' }}
@@ -255,7 +255,7 @@
                 <p-tag [value]="tx.type" [severity]="getTypeSeverity(tx.type)"></p-tag>
               </td>
               <td class="text-right font-mono">
-                {{ formatCentsToAmount(tx.amountCents) | currency }}
+                {{ formatCentsToAmount(tx.amountCents) | currency:'EUR' }}
               </td>
               <td class="truncate max-w-[200px]">{{ tx.counterparty || '-' }}</td>
             </tr>
