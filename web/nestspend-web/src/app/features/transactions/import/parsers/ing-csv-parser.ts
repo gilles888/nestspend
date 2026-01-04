@@ -1,22 +1,42 @@
 import * as Papa from 'papaparse';
 import { BankImportParser } from './bank-import-parser.interface';
 import { NormalizedImportedTransaction, BankType, ParseResult } from '../models/import.models';
+import {
+  parseAmountFlexible,
+  parseDateFlexible,
+  normalizeName,
+  detectDelimiter,
+  findHeaderLineIndex,
+  detectColumnsWithAliases,
+  combineDescriptions,
+} from './parse-utils';
 
 /**
  * Parser for ING CSV bank exports.
- * ING CSV format typically has columns like:
- * - Datum
- * - Bedrag
- * - Naam / Omschrijving
- * - Tegenrekening
+ * Enhanced to handle Belgian ING exports with:
+ * - Various date formats (dd/MM/yyyy)
+ * - European amount format with comma decimals
+ * - Multiple description columns (Libellés, Détails du mouvement, Message)
  */
 export class IngCsvParser implements BankImportParser {
+  // Known ING column headers
   private static readonly KNOWN_HEADERS = [
-    'ing',
+    'numéro de compte',
+    'nom du compte',
+    'compte contrepartie',
+    'numéro de mouvement',
+    'date comptable',
+    'date valeur',
+    'montant',
+    'devise',
+    'libellés',
+    'détails du mouvement',
+    'message',
+    // Dutch variants
     'rekening',
     'naam / omschrijving',
     'tegenrekening',
-    'code',
+    'bedrag',
     'af bij',
   ];
 
@@ -34,35 +54,37 @@ export class IngCsvParser implements BankImportParser {
       return false;
     }
 
+    // Check if file name contains ING identifiers or account pattern
+    const lowerFileName = fileName.toLowerCase();
+    if (lowerFileName.includes('ing') || /be\d{2}\s?\d{4}\s?\d{4}\s?\d{4}/.test(lowerFileName)) {
+      return true;
+    }
+
     // Check if first lines contain ING-specific headers
-    const firstLinesLower = firstLines.join(' ').toLowerCase();
-    return (
-      firstLinesLower.includes('ing') ||
-      IngCsvParser.KNOWN_HEADERS.some((header) => firstLinesLower.includes(header))
-    );
+    const allContent = firstLines.join(' ').toLowerCase();
+    return IngCsvParser.KNOWN_HEADERS.some((header) => allContent.includes(header));
   }
 
   parse(fileContent: string): ParseResult {
-    const rawPreview = fileContent.split('\n').slice(0, 10);
+    const allLines = fileContent.split('\n');
+    const rawPreview = allLines.slice(0, 15);
     const transactions: NormalizedImportedTransaction[] = [];
     let errorLines = 0;
 
-    const parseResult = Papa.parse<string[]>(fileContent, {
-      delimiter: ';',
+    // Detect delimiter
+    const delimiter = detectDelimiter(fileContent);
+
+    // Find the header line (in case of preamble)
+    const headerLineIndex = findHeaderLineIndex(allLines, delimiter);
+
+    // Extract content starting from header
+    const contentFromHeader = allLines.slice(headerLineIndex).join('\n');
+
+    // Parse CSV with PapaParse
+    const parseResult = Papa.parse<string[]>(contentFromHeader, {
+      delimiter,
       skipEmptyLines: true,
     });
-
-    // Try comma delimiter as fallback
-    if (parseResult.errors.length > 0 || parseResult.data.length < 2) {
-      const commaResult = Papa.parse<string[]>(fileContent, {
-        delimiter: ',',
-        skipEmptyLines: true,
-      });
-      if (commaResult.data.length > parseResult.data.length) {
-        parseResult.data = commaResult.data;
-        parseResult.errors = commaResult.errors;
-      }
-    }
 
     const rows = parseResult.data;
     if (rows.length < 2) {
@@ -76,15 +98,20 @@ export class IngCsvParser implements BankImportParser {
       };
     }
 
+    // Detect column indices using aliases
     const headers = rows[0].map((h) => h.toLowerCase().trim());
-    const columnMap = this.detectColumns(headers);
+    const columnMap = this.detectIngColumns(headers);
 
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
-      const rawLine = row.join(';');
+      if (row.length < 2 || row.every((cell) => !cell.trim())) {
+        continue; // Skip empty rows
+      }
+
+      const rawLine = row.join(delimiter);
 
       try {
-        const transaction = this.parseRow(row, columnMap, rawLine);
+        const transaction = this.parseRow(row, columnMap, rawLine, headers);
         if (transaction) {
           transactions.push(transaction);
         } else {
@@ -115,39 +142,54 @@ export class IngCsvParser implements BankImportParser {
     };
   }
 
-  private detectColumns(headers: string[]): Record<string, number> {
-    const map: Record<string, number> = {};
+  /**
+   * ING-specific column detection with extended aliases.
+   */
+  private detectIngColumns(headers: string[]): Record<string, number> {
+    // First use the generic alias detection
+    const map = detectColumnsWithAliases(headers);
 
+    // ING-specific additional mappings
     headers.forEach((header, index) => {
-      if (header.includes('datum') || header.includes('date')) {
-        map['date'] = index;
+      const h = header.toLowerCase().trim();
+
+      // Date - ING specific
+      if (map['date'] === undefined) {
+        if (h.includes('date comptable') || h.includes('date valeur') || h === 'datum') {
+          map['date'] = index;
+        }
       }
-      if (header.includes('bedrag') || header.includes('amount') || header.includes('montant')) {
-        map['amount'] = index;
+
+      // Amount - ING specific
+      if (map['amount'] === undefined) {
+        if (h === 'montant' || h === 'bedrag') {
+          map['amount'] = index;
+        }
       }
-      // ING uses "Af Bij" or similar for debit/credit indicator
-      if (header.includes('af bij') || header.includes('af/bij') || header.includes('debit')) {
-        map['debitCredit'] = index;
+
+      // ING has multiple description columns - capture them all
+      if (h.includes('libellés') || h === 'libelles') {
+        map['libelles'] = index;
       }
-      if (
-        header.includes('naam / omschrijving') ||
-        header.includes('name') ||
-        header.includes('omschrijving')
-      ) {
-        map['counterparty'] = index;
+      if (h.includes('détails du mouvement') || h.includes('details du mouvement')) {
+        map['details'] = index;
       }
-      if (header.includes('mededelingen') || header.includes('communication')) {
-        map['description'] = index;
+      if (h === 'message') {
+        map['message'] = index;
       }
-      if (header.includes('tegenrekening') || header.includes('counter account')) {
-        map['iban'] = index;
+
+      // Counterparty IBAN
+      if (map['iban'] === undefined) {
+        if (h.includes('compte contrepartie') || h.includes('tegenrekening')) {
+          map['iban'] = index;
+        }
       }
-      if (
-        header.includes('mutatiesoort') ||
-        header.includes('type') ||
-        header.includes('code')
-      ) {
-        map['transactionType'] = index;
+
+      // Reference
+      if (map['reference'] === undefined) {
+        if (h.includes('numéro de mouvement') || h.includes('nummer')) {
+          map['reference'] = index;
+        }
       }
     });
 
@@ -157,19 +199,38 @@ export class IngCsvParser implements BankImportParser {
   private parseRow(
     row: string[],
     columnMap: Record<string, number>,
-    rawLine: string
+    rawLine: string,
+    _headers: string[]
   ): NormalizedImportedTransaction | null {
+    // Extract date
     const dateStr = columnMap['date'] !== undefined ? row[columnMap['date']]?.trim() : '';
-    const amountStr = columnMap['amount'] !== undefined ? row[columnMap['amount']]?.trim() : '';
-    const debitCredit =
-      columnMap['debitCredit'] !== undefined ? row[columnMap['debitCredit']]?.trim() : '';
-    const counterparty =
-      columnMap['counterparty'] !== undefined ? row[columnMap['counterparty']]?.trim() : '';
-    const description =
-      columnMap['description'] !== undefined ? row[columnMap['description']]?.trim() : '';
-    const iban = columnMap['iban'] !== undefined ? row[columnMap['iban']]?.trim() : undefined;
 
-    const date = this.parseDate(dateStr);
+    // Extract amount
+    const amountStr = columnMap['amount'] !== undefined ? row[columnMap['amount']]?.trim() : '';
+
+    // Extract counterparty from various possible columns
+    const counterpartyRaw =
+      columnMap['counterparty'] !== undefined ? row[columnMap['counterparty']]?.trim() : '';
+
+    // Extract and combine description from multiple ING columns
+    const libelles = columnMap['libelles'] !== undefined ? row[columnMap['libelles']]?.trim() : '';
+    const details = columnMap['details'] !== undefined ? row[columnMap['details']]?.trim() : '';
+    const message = columnMap['message'] !== undefined ? row[columnMap['message']]?.trim() : '';
+    const descriptionRaw =
+      columnMap['description'] !== undefined ? row[columnMap['description']]?.trim() : '';
+
+    const iban = columnMap['iban'] !== undefined ? row[columnMap['iban']]?.trim() : undefined;
+    const externalId =
+      columnMap['reference'] !== undefined ? row[columnMap['reference']]?.trim() : undefined;
+
+    // Normalize names
+    const counterparty = normalizeName(counterpartyRaw);
+
+    // Combine all description fields intelligently
+    const description = combineDescriptions(libelles, details, message, descriptionRaw);
+
+    // Parse date
+    const date = parseDateFlexible(dateStr);
     if (!date) {
       return {
         importedDate: new Date(),
@@ -183,7 +244,8 @@ export class IngCsvParser implements BankImportParser {
       };
     }
 
-    let amount = this.parseAmount(amountStr);
+    // Parse amount
+    const amount = parseAmountFlexible(amountStr);
     if (amount === null) {
       return {
         importedDate: date,
@@ -197,86 +259,23 @@ export class IngCsvParser implements BankImportParser {
       };
     }
 
-    // ING sometimes uses a separate column for debit/credit
-    // "Af" means debit (expense), "Bij" means credit (income)
-    let type: 'EXPENSE' | 'INCOME';
-    if (debitCredit) {
-      const dc = debitCredit.toLowerCase();
-      if (dc === 'af' || dc.includes('debit') || dc === '-') {
-        type = 'EXPENSE';
-        amount = Math.abs(amount);
-      } else if (dc === 'bij' || dc.includes('credit') || dc === '+') {
-        type = 'INCOME';
-        amount = Math.abs(amount);
-      } else {
-        type = amount < 0 ? 'EXPENSE' : 'INCOME';
-      }
-    } else {
-      type = amount < 0 ? 'EXPENSE' : 'INCOME';
-    }
-
+    // Determine type based on amount sign
+    const type: 'EXPENSE' | 'INCOME' = amount < 0 ? 'EXPENSE' : 'INCOME';
     const amountCents = Math.abs(Math.round(amount * 100));
+
+    // Use description as counterparty if counterparty is empty
+    const finalCounterparty = counterparty || description.split(' - ')[0] || '';
 
     return {
       importedDate: date,
       amountCents,
       type,
-      counterparty: counterparty || '',
+      counterparty: finalCounterparty,
       description: description || '',
       iban: iban || undefined,
+      externalId: externalId || undefined,
       rawLine,
       status: 'OK',
     };
-  }
-
-  private parseDate(dateStr: string): Date | null {
-    if (!dateStr) return null;
-
-    // ING often uses YYYYMMDD or DD-MM-YYYY
-    const formats = [
-      /^(\d{4})(\d{2})(\d{2})$/, // YYYYMMDD
-      /^(\d{2})-(\d{2})-(\d{4})$/, // DD-MM-YYYY
-      /^(\d{2})\/(\d{2})\/(\d{4})$/, // DD/MM/YYYY
-      /^(\d{4})-(\d{2})-(\d{2})$/, // YYYY-MM-DD
-    ];
-
-    for (const format of formats) {
-      const match = dateStr.match(format);
-      if (match) {
-        if (format === formats[0]) {
-          // YYYYMMDD
-          const year = parseInt(match[1], 10);
-          const month = parseInt(match[2], 10) - 1;
-          const day = parseInt(match[3], 10);
-          return new Date(year, month, day);
-        } else if (format === formats[1] || format === formats[2]) {
-          // DD-MM-YYYY or DD/MM/YYYY
-          const day = parseInt(match[1], 10);
-          const month = parseInt(match[2], 10) - 1;
-          const year = parseInt(match[3], 10);
-          return new Date(year, month, day);
-        } else if (format === formats[3]) {
-          // YYYY-MM-DD
-          return new Date(dateStr);
-        }
-      }
-    }
-
-    return null;
-  }
-
-  private parseAmount(amountStr: string): number | null {
-    if (!amountStr) return null;
-
-    let cleaned = amountStr.trim().replace(/[€$\s]/g, '');
-
-    if (cleaned.includes(',') && !cleaned.includes('.')) {
-      cleaned = cleaned.replace(',', '.');
-    } else if (cleaned.includes(',') && cleaned.includes('.')) {
-      cleaned = cleaned.replace(/\./g, '').replace(',', '.');
-    }
-
-    const amount = parseFloat(cleaned);
-    return isNaN(amount) ? null : amount;
   }
 }

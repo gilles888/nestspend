@@ -7,9 +7,17 @@ import { IngCsvParser } from './ing-csv-parser';
 import { IngTxtParser } from './ing-txt-parser';
 import { BankType, ParseResult, NormalizedImportedTransaction } from '../models/import.models';
 import * as Papa from 'papaparse';
+import {
+  parseAmountFlexible,
+  parseDateFlexible,
+  detectDelimiter,
+  findHeaderLineIndex,
+  detectColumnsWithAliases,
+} from './parse-utils';
 
 /**
  * Factory for creating bank parsers and auto-detecting file format.
+ * Enhanced with robust preamble and encoding support.
  */
 @Injectable({
   providedIn: 'root',
@@ -25,13 +33,15 @@ export class BankParserFactory {
 
   /**
    * Auto-detect the bank type from file content.
+   * Checks more lines to handle files with preamble.
    * @param fileName File name
    * @param mimeType MIME type
    * @param fileContent File content (first portion for analysis)
    * @returns Detected bank type or 'UNKNOWN'
    */
   detectBankType(fileName: string, mimeType: string, fileContent: string): BankType {
-    const firstLines = fileContent.split('\n').slice(0, 5);
+    // Check more lines to handle preamble
+    const firstLines = fileContent.split('\n').slice(0, 20);
 
     for (const parser of this.parsers) {
       if (parser.canHandle(fileName, mimeType, firstLines)) {
@@ -84,7 +94,7 @@ export class BankParserFactory {
     const detectedBankType = bankType || this.detectBankType(fileName, mimeType, fileContent);
 
     if (detectedBankType === 'UNKNOWN') {
-      // Try generic CSV parsing
+      // Try generic CSV parsing with enhanced utilities
       return this.parseGenericCsv(fileContent);
     }
 
@@ -98,31 +108,28 @@ export class BankParserFactory {
 
   /**
    * Fallback generic CSV parser for unknown formats.
+   * Enhanced with preamble detection and flexible parsing.
    */
   private parseGenericCsv(fileContent: string): ParseResult {
-    const rawPreview = fileContent.split('\n').slice(0, 10);
+    const allLines = fileContent.split('\n');
+    const rawPreview = allLines.slice(0, 15);
     const transactions: NormalizedImportedTransaction[] = [];
     let errorLines = 0;
 
-    // Try different delimiters
-    let parseResult = Papa.parse<string[]>(fileContent, {
-      delimiter: ';',
+    // Detect delimiter
+    const delimiter = detectDelimiter(fileContent);
+
+    // Find header line (skip preamble)
+    const headerLineIndex = findHeaderLineIndex(allLines, delimiter);
+
+    // Extract content from header
+    const contentFromHeader = allLines.slice(headerLineIndex).join('\n');
+
+    // Parse CSV
+    const parseResult = Papa.parse<string[]>(contentFromHeader, {
+      delimiter,
       skipEmptyLines: true,
     });
-
-    if (parseResult.data.length < 2) {
-      parseResult = Papa.parse<string[]>(fileContent, {
-        delimiter: ',',
-        skipEmptyLines: true,
-      });
-    }
-
-    if (parseResult.data.length < 2) {
-      parseResult = Papa.parse<string[]>(fileContent, {
-        delimiter: '\t',
-        skipEmptyLines: true,
-      });
-    }
 
     const rows = parseResult.data;
     if (rows.length < 2) {
@@ -136,13 +143,17 @@ export class BankParserFactory {
       };
     }
 
-    // Try to detect column indices from headers
+    // Detect columns using aliases
     const headers = rows[0].map((h) => h.toLowerCase().trim());
-    const columnMap = this.detectGenericColumns(headers);
+    const columnMap = detectColumnsWithAliases(headers);
 
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
-      const rawLine = row.join(';');
+      if (row.length < 2 || row.every((cell) => !cell.trim())) {
+        continue; // Skip empty rows
+      }
+
+      const rawLine = row.join(delimiter);
 
       try {
         const transaction = this.parseGenericRow(row, columnMap, rawLine);
@@ -176,41 +187,6 @@ export class BankParserFactory {
     };
   }
 
-  private detectGenericColumns(headers: string[]): Record<string, number> {
-    const map: Record<string, number> = {};
-
-    headers.forEach((header, index) => {
-      // Date variations
-      if (header.includes('date') || header.includes('datum') || header.includes('comptable')) {
-        if (map['date'] === undefined) map['date'] = index;
-      }
-      // Amount variations
-      if (
-        header.includes('amount') ||
-        header.includes('montant') ||
-        header.includes('bedrag') ||
-        header.includes('sum')
-      ) {
-        if (map['amount'] === undefined) map['amount'] = index;
-      }
-      // Description/counterparty variations
-      if (
-        header.includes('description') ||
-        header.includes('omschrijving') ||
-        header.includes('communication') ||
-        header.includes('counterparty') ||
-        header.includes('contrepartie') ||
-        header.includes('name') ||
-        header.includes('naam')
-      ) {
-        if (map['counterparty'] === undefined) map['counterparty'] = index;
-        else if (map['description'] === undefined) map['description'] = index;
-      }
-    });
-
-    return map;
-  }
-
   private parseGenericRow(
     row: string[],
     columnMap: Record<string, number>,
@@ -223,7 +199,8 @@ export class BankParserFactory {
     const description =
       columnMap['description'] !== undefined ? row[columnMap['description']]?.trim() : '';
 
-    const date = this.parseGenericDate(dateStr);
+    // Use flexible date parser
+    const date = parseDateFlexible(dateStr);
     if (!date) {
       return {
         importedDate: new Date(),
@@ -237,7 +214,8 @@ export class BankParserFactory {
       };
     }
 
-    const amount = this.parseGenericAmount(amountStr);
+    // Use flexible amount parser
+    const amount = parseAmountFlexible(amountStr);
     if (amount === null) {
       return {
         importedDate: date,
@@ -263,58 +241,6 @@ export class BankParserFactory {
       rawLine,
       status: 'OK',
     };
-  }
-
-  private parseGenericDate(dateStr: string): Date | null {
-    if (!dateStr) return null;
-
-    // Try common date formats
-    const formats = [
-      /^(\d{2})\/(\d{2})\/(\d{4})$/, // DD/MM/YYYY
-      /^(\d{4})-(\d{2})-(\d{2})$/, // YYYY-MM-DD
-      /^(\d{2})-(\d{2})-(\d{4})$/, // DD-MM-YYYY
-      /^(\d{4})(\d{2})(\d{2})$/, // YYYYMMDD
-    ];
-
-    for (const format of formats) {
-      const match = dateStr.match(format);
-      if (match) {
-        if (format === formats[0] || format === formats[2]) {
-          const day = parseInt(match[1], 10);
-          const month = parseInt(match[2], 10) - 1;
-          const year = parseInt(match[3], 10);
-          return new Date(year, month, day);
-        } else if (format === formats[1]) {
-          return new Date(dateStr);
-        } else if (format === formats[3]) {
-          const year = parseInt(match[1], 10);
-          const month = parseInt(match[2], 10) - 1;
-          const day = parseInt(match[3], 10);
-          return new Date(year, month, day);
-        }
-      }
-    }
-
-    // Try Date.parse as last resort
-    const parsed = Date.parse(dateStr);
-    return isNaN(parsed) ? null : new Date(parsed);
-  }
-
-  private parseGenericAmount(amountStr: string): number | null {
-    if (!amountStr) return null;
-
-    let cleaned = amountStr.trim().replace(/[€$£\s]/g, '');
-
-    // Handle European format (comma as decimal separator)
-    if (cleaned.includes(',') && !cleaned.includes('.')) {
-      cleaned = cleaned.replace(',', '.');
-    } else if (cleaned.includes(',') && cleaned.includes('.')) {
-      // 1.234,56 format - remove thousand separators
-      cleaned = cleaned.replace(/\./g, '').replace(',', '.');
-    }
-
-    const amount = parseFloat(cleaned);
-    return isNaN(amount) ? null : amount;
   }
 
   /**

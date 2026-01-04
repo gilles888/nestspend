@@ -12,6 +12,12 @@ import {
 } from './models/import.models';
 
 /**
+ * Encodings to try when reading bank files.
+ * Belgian banks often use Windows-1252 (cp1252) encoding.
+ */
+const ENCODINGS_TO_TRY = ['UTF-8', 'windows-1252', 'ISO-8859-1'];
+
+/**
  * Service for orchestrating the import wizard workflow.
  */
 @Injectable({
@@ -79,7 +85,7 @@ export class ImportTransactionsService {
    */
   async parseFile(file: File): Promise<ParseResult> {
     const state = this._state();
-    const fileContent = await this.readFileContent(file);
+    const fileContent = await this.readFileWithEncodingDetection(file);
 
     // Detect or use specified bank type
     const detectedBankType =
@@ -250,14 +256,38 @@ export class ImportTransactionsService {
   }
 
   /**
-   * Read file content as text.
+   * Read file content with encoding detection.
+   * Tries multiple encodings to find one that works without errors.
+   * Belgian bank files often use Windows-1252 encoding.
    */
-  private readFileContent(file: File): Promise<string> {
+  private async readFileWithEncodingDetection(file: File): Promise<string> {
+    // Try each encoding
+    for (const encoding of ENCODINGS_TO_TRY) {
+      try {
+        const content = await this.readFileWithEncoding(file, encoding);
+        // Check if content looks valid (no replacement characters)
+        if (!content.includes('\uFFFD')) {
+          return content;
+        }
+      } catch {
+        // Try next encoding
+        continue;
+      }
+    }
+
+    // Fallback to UTF-8 if nothing else works
+    return this.readFileWithEncoding(file, 'UTF-8');
+  }
+
+  /**
+   * Read file content with a specific encoding.
+   */
+  private readFileWithEncoding(file: File, encoding: string): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
       reader.onerror = () => reject(reader.error);
-      reader.readAsText(file, 'UTF-8');
+      reader.readAsText(file, encoding);
     });
   }
 }
