@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -103,5 +104,25 @@ public class ClassificationRuleController {
     public ResponseEntity<Void> deleteRule(@PathVariable UUID id) {
         classificationService.deleteRule(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/initialize-defaults")
+    @Operation(summary = "Initialize default classification rules", 
+            description = "Creates default classification rules for the current user's household if none exist. " +
+                    "This is useful for existing users who registered before the auto-categorization feature was added.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully initialized default rules"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token",
+                    content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<Map<String, Object>> initializeDefaultRules() {
+        int rulesCreated = classificationService.initializeDefaultRulesIfNeeded();
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "rulesCreated", rulesCreated,
+                "message", rulesCreated > 0 
+                        ? rulesCreated + " default classification rules created" 
+                        : "Default rules already exist"
+        ));
     }
 }

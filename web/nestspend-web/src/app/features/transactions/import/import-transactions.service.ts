@@ -1,4 +1,6 @@
 import { Injectable, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { TransactionsService } from '../../../core/api/services/transactions.service';
 import { ClassificationService } from '../../../core/api/services/classification.service';
 import { CategoriesService } from '../../../core/api/services/categories.service';
@@ -44,8 +46,12 @@ export class ImportTransactionsService {
 
   // Categories cache for displaying names
   private categoriesMap: Map<string, CategoryResponse> = new Map();
+  
+  // Track if we've already initialized default rules
+  private defaultRulesInitialized = false;
 
   constructor(
+    private http: HttpClient,
     private transactionsService: TransactionsService,
     private classificationService: ClassificationService,
     private categoriesService: CategoriesService,
@@ -132,6 +138,36 @@ export class ImportTransactionsService {
   }
 
   /**
+   * Initialize default classification rules if none exist.
+   * This is called automatically before the first classification attempt.
+   */
+  private async initializeDefaultRulesIfNeeded(): Promise<void> {
+    if (this.defaultRulesInitialized) {
+      return; // Already checked this session
+    }
+
+    try {
+      // Call the backend endpoint to initialize default rules if needed
+      const response = await firstValueFrom(
+        this.http.post<{ success: boolean; rulesCreated: number; message: string }>(
+          '/api/classification-rules/initialize-defaults',
+          {}
+        )
+      );
+      
+      if (response.rulesCreated > 0) {
+        console.log(`Initialized ${response.rulesCreated} default classification rules`);
+      }
+      
+      this.defaultRulesInitialized = true;
+    } catch (error) {
+      // Non-blocking error - rules might already exist or endpoint not available
+      console.warn('Could not initialize default rules:', error instanceof Error ? error.message : error);
+      this.defaultRulesInitialized = true; // Don't retry
+    }
+  }
+
+  /**
    * Apply classification suggestions to transactions.
    */
   private async applyClassificationSuggestions(
@@ -145,6 +181,9 @@ export class ImportTransactionsService {
     }
 
     try {
+      // Initialize default rules if this is the first classification attempt
+      await this.initializeDefaultRulesIfNeeded();
+      
       // Build request for classification API
       const transactionsToClassify: TransactionToClassify[] = transactions.map((t) => ({
         merchant: t.counterparty || undefined,

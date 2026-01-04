@@ -561,6 +561,33 @@ public class ClassificationService {
         }
     }
 
+    /**
+     * Initialize default classification rules for the current user's household if none exist.
+     * This is useful for existing users who registered before the auto-categorization feature was added.
+     *
+     * @return the number of rules created
+     */
+    @Transactional
+    public int initializeDefaultRulesIfNeeded() {
+        UUID householdId = currentUserService.getCurrentHouseholdId();
+        
+        // Check if any rules already exist
+        List<ClassificationRule> existingRules = ruleRepository.findByHouseholdId(householdId);
+        if (!existingRules.isEmpty()) {
+            return 0; // Rules already exist, don't create duplicates
+        }
+
+        // Get the household entity
+        var household = householdRepository.findById(householdId)
+                .orElseThrow(() -> new ResourceNotFoundException("Household not found"));
+
+        // Create default rules
+        createDefaultRules(household);
+
+        // Return count of newly created rules
+        return ruleRepository.findByHouseholdId(householdId).size();
+    }
+
     // ==================== CRUD Operations ====================
 
     /**
