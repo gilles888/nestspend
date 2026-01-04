@@ -203,17 +203,25 @@ export function normalizeName(name: string | undefined | null): string {
 
 /**
  * Detect the CSV delimiter by analyzing the content.
+ * Supports semicolon, comma, and tab delimiters.
  * @param content File content
- * @returns Detected delimiter (';' or ',')
+ * @returns Detected delimiter (';', ',', or '\t')
  */
 export function detectDelimiter(content: string): string {
-  const firstLines = content.split('\n').slice(0, 10);
+  const firstLines = content.split('\n').slice(0, 15);
   let semicolonCount = 0;
   let commaCount = 0;
+  let tabCount = 0;
 
   for (const line of firstLines) {
     semicolonCount += (line.match(/;/g) || []).length;
     commaCount += (line.match(/,/g) || []).length;
+    tabCount += (line.match(/\t/g) || []).length;
+  }
+
+  // Check for tab delimiter first (Excel exports often use tabs)
+  if (tabCount > semicolonCount && tabCount > commaCount) {
+    return '\t';
   }
 
   // Belgian banks typically use semicolon

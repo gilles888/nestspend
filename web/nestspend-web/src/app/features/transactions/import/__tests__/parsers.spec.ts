@@ -10,6 +10,7 @@ import {
 } from '../parsers/parse-utils';
 import {
   BELFIUS_CSV_WITH_PREAMBLE,
+  BELFIUS_TAB_SPLIT_AMOUNT,
   ING_CSV_EXPORT,
   SIMPLE_TRANSACTIONS_CSV,
 } from '../__fixtures__/bank-csv-fixtures';
@@ -84,6 +85,11 @@ describe('Parse Utils', () => {
       const content = 'Col1,Col2,Col3\nVal1,Val2,Val3';
       expect(detectDelimiter(content)).toBe(',');
     });
+
+    it('should detect tab delimiter', () => {
+      const content = 'Col1\tCol2\tCol3\nVal1\tVal2\tVal3';
+      expect(detectDelimiter(content)).toBe('\t');
+    });
   });
 
   describe('findHeaderLineIndex', () => {
@@ -97,6 +103,12 @@ describe('Parse Utils', () => {
       const lines = SIMPLE_TRANSACTIONS_CSV.split('\n');
       const index = findHeaderLineIndex(lines, ';');
       expect(index).toBe(0);
+    });
+
+    it('should find header in tab-delimited file with preamble', () => {
+      const lines = BELFIUS_TAB_SPLIT_AMOUNT.split('\n');
+      const index = findHeaderLineIndex(lines, '\t');
+      expect(index).toBe(4); // After preamble lines
     });
   });
 

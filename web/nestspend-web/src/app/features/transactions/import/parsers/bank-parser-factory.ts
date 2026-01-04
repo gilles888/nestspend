@@ -193,11 +193,24 @@ export class BankParserFactory {
     rawLine: string
   ): NormalizedImportedTransaction | null {
     const dateStr = columnMap['date'] !== undefined ? row[columnMap['date']]?.trim() : '';
-    const amountStr = columnMap['amount'] !== undefined ? row[columnMap['amount']]?.trim() : '';
+    let amountStr = columnMap['amount'] !== undefined ? row[columnMap['amount']]?.trim() : '';
     const counterparty =
       columnMap['counterparty'] !== undefined ? row[columnMap['counterparty']]?.trim() : '';
     const description =
       columnMap['description'] !== undefined ? row[columnMap['description']]?.trim() : '';
+
+    // Handle split amount: if amount column is followed by a decimal part
+    // This handles cases where "100,00" is split into "100" and "0" due to delimiter confusion
+    if (columnMap['amount'] !== undefined) {
+      const amountIndex = columnMap['amount'];
+      const nextValue = row[amountIndex + 1]?.trim();
+      
+      // Check if next column looks like decimal digits (0-2 digits, not a currency or other data)
+      if (nextValue && /^\d{1,2}$/.test(nextValue) && !amountStr.includes(',') && !amountStr.includes('.')) {
+        // Combine: "100" + "0" → "100,0" (European format)
+        amountStr = `${amountStr},${nextValue}`;
+      }
+    }
 
     // Use flexible date parser
     const date = parseDateFlexible(dateStr);
@@ -216,7 +229,7 @@ export class BankParserFactory {
 
     // Use flexible amount parser
     const amount = parseAmountFlexible(amountStr);
-    if (amount === null) {
+    if (amount === null || amount === 0) {
       return {
         importedDate: date,
         amountCents: 0,

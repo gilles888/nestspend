@@ -22,6 +22,23 @@ BE92 0639 0253 5323;03/01/2026;1;3;BE12 3456 7890 1234;EMPLOYEUR SPRL;Avenue Tra
 BE92 0639 0253 5323;02/01/2026;1;4;;;;;;;02/01/2026;- 12,50;EUR;;;Frais bancaires`;
 
 /**
+ * Belfius CSV with TAB delimiter and split amounts.
+ * This simulates the case where amount "100,00" is split into "100" and "0"
+ * due to delimiter/encoding issues.
+ * Features:
+ * - Tab delimiter
+ * - Split amount columns (100 and 0 instead of 100,00)
+ * - Preamble with corrupted characters
+ */
+export const BELFIUS_TAB_SPLIT_AMOUNT = `Date de comptabilisation à partir de\t01/12/2025\t\t\t\t\t\t\t\t\t\t\t\t\t
+Date de comptabilisation jusqu'au\t31/12/2025\t\t\t\t\t\t\t\t\t\t\t\t\t
+Dernier solde\t236\t75 EUR\t\t\t\t\t\t\t\t\t\t\t\t
+\t\t\t\t\t\t\t\t\t\t\t\t\t\t
+Compte\tDate de comptabilisation\tNuméro d'extrait\tNuméro de transaction\tCompte contrepartie\tNom contrepartie contient\tRue et numéro\tCode postal et localité\tTransaction\tDate valeur\tMontant\tDevise\tBIC\tCode pays\tCommunications
+BE92 0639 0253 5323\t30/12/2025\t\t\tBE39 0835 7905 2819\tTest User\tAV TEST 54\t1030 BRUXELLES\tVIREMENT\t30/12/2025\t100\t0\tEUR\tGKCCBEBB\tBE
+BE92 0639 0253 5323\t29/12/2025\t\t\t\t\t\t\tFRAIS BANCAIRES\t29/12/2025\t-25\t50\tEUR\t\t\tFrais mensuels`;
+
+/**
  * ING CSV export (BE74 style).
  * Features:
  * - Header on first line
@@ -79,6 +96,25 @@ export const EXPECTED_BELFIUS_RESULTS = [
     type: 'EXPENSE',
     counterparty: '',
     description: 'Frais bancaires',
+  },
+];
+
+/**
+ * Expected parsed results for BELFIUS_TAB_SPLIT_AMOUNT.
+ * Tests the split amount recombination logic.
+ */
+export const EXPECTED_BELFIUS_TAB_RESULTS = [
+  {
+    date: new Date(2025, 11, 30), // 30/12/2025
+    amountCents: 10000, // 100,0 → 100.00 → 10000 cents
+    type: 'INCOME',
+    counterparty: 'Test User',
+  },
+  {
+    date: new Date(2025, 11, 29), // 29/12/2025
+    amountCents: 2550, // -25,50 → -25.50 → 2550 cents
+    type: 'EXPENSE',
+    counterparty: '',
   },
 ];
 

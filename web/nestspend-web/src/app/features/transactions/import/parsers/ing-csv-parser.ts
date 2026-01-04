@@ -206,7 +206,20 @@ export class IngCsvParser implements BankImportParser {
     const dateStr = columnMap['date'] !== undefined ? row[columnMap['date']]?.trim() : '';
 
     // Extract amount
-    const amountStr = columnMap['amount'] !== undefined ? row[columnMap['amount']]?.trim() : '';
+    let amountStr = columnMap['amount'] !== undefined ? row[columnMap['amount']]?.trim() : '';
+
+    // Handle split amount: if amount column is followed by a decimal part
+    // This handles cases where "100,00" is split into "100" and "0" due to delimiter confusion
+    if (columnMap['amount'] !== undefined) {
+      const amountIndex = columnMap['amount'];
+      const nextValue = row[amountIndex + 1]?.trim();
+      
+      // Check if next column looks like decimal digits (0-2 digits, not a currency or other data)
+      if (nextValue && /^\d{1,2}$/.test(nextValue) && !amountStr.includes(',') && !amountStr.includes('.')) {
+        // Combine: "100" + "0" → "100,0" (European format)
+        amountStr = `${amountStr},${nextValue}`;
+      }
+    }
 
     // Extract counterparty from various possible columns
     const counterpartyRaw =
@@ -246,7 +259,7 @@ export class IngCsvParser implements BankImportParser {
 
     // Parse amount
     const amount = parseAmountFlexible(amountStr);
-    if (amount === null) {
+    if (amount === null || amount === 0) {
       return {
         importedDate: date,
         amountCents: 0,

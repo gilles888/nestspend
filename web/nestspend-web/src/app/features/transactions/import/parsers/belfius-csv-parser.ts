@@ -143,7 +143,7 @@ export class BelfiusCsvParser implements BankImportParser {
   ): NormalizedImportedTransaction | null {
     // Extract values using column map
     const dateStr = columnMap['date'] !== undefined ? row[columnMap['date']]?.trim() : '';
-    const amountStr = columnMap['amount'] !== undefined ? row[columnMap['amount']]?.trim() : '';
+    let amountStr = columnMap['amount'] !== undefined ? row[columnMap['amount']]?.trim() : '';
     const counterpartyRaw =
       columnMap['counterparty'] !== undefined ? row[columnMap['counterparty']]?.trim() : '';
     const descriptionRaw =
@@ -151,6 +151,19 @@ export class BelfiusCsvParser implements BankImportParser {
     const iban = columnMap['iban'] !== undefined ? row[columnMap['iban']]?.trim() : undefined;
     const externalId =
       columnMap['reference'] !== undefined ? row[columnMap['reference']]?.trim() : undefined;
+
+    // Handle split amount: if amount column is followed by a decimal part
+    // This handles cases where "100,00" is split into "100" and "0" due to delimiter confusion
+    if (columnMap['amount'] !== undefined) {
+      const amountIndex = columnMap['amount'];
+      const nextValue = row[amountIndex + 1]?.trim();
+      
+      // Check if next column looks like decimal digits (0-2 digits, not a currency or other data)
+      if (nextValue && /^\d{1,2}$/.test(nextValue) && !amountStr.includes(',') && !amountStr.includes('.')) {
+        // Combine: "100" + "0" → "100,0" (European format)
+        amountStr = `${amountStr},${nextValue}`;
+      }
+    }
 
     // Normalize counterparty and description
     const counterparty = normalizeName(counterpartyRaw);
@@ -173,7 +186,7 @@ export class BelfiusCsvParser implements BankImportParser {
 
     // Parse amount using flexible parser
     const amount = parseAmountFlexible(amountStr);
-    if (amount === null) {
+    if (amount === null || amount === 0) {
       return {
         importedDate: date,
         amountCents: 0,
