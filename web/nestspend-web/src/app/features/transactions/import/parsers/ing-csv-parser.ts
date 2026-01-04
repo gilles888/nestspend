@@ -212,12 +212,15 @@ export class IngCsvParser implements BankImportParser {
     // This handles cases where "100,00" is split into "100" and "0" due to delimiter confusion
     if (columnMap['amount'] !== undefined) {
       const amountIndex = columnMap['amount'];
-      const nextValue = row[amountIndex + 1]?.trim();
-      
-      // Check if next column looks like decimal digits (0-2 digits, not a currency or other data)
-      if (nextValue && /^\d{1,2}$/.test(nextValue) && !amountStr.includes(',') && !amountStr.includes('.')) {
-        // Combine: "100" + "0" → "100,0" (European format)
-        amountStr = `${amountStr},${nextValue}`;
+      // Bounds check: ensure next column exists
+      if (amountIndex + 1 < row.length) {
+        const nextValue = row[amountIndex + 1]?.trim();
+        
+        // Check if next column looks like decimal digits (1-2 digits, not a currency or other data)
+        if (nextValue && /^\d{1,2}$/.test(nextValue) && !amountStr.includes(',') && !amountStr.includes('.')) {
+          // Combine: "100" + "0" → "100,0" (European format)
+          amountStr = `${amountStr},${nextValue}`;
+        }
       }
     }
 
