@@ -177,7 +177,9 @@ export class ImportTransactionsService {
         return t;
       });
     } catch (error) {
-      console.error('Error applying classification suggestions:', error);
+      // Classification failures are non-blocking - import can proceed without suggestions
+      // Log detailed error for debugging purposes
+      console.warn('Auto-classification unavailable:', error instanceof Error ? error.message : error);
       // Return transactions without suggestions if classification fails
       return transactions;
     }
@@ -200,7 +202,8 @@ export class ImportTransactionsService {
         }
       }
     } catch (error) {
-      console.error('Error loading categories:', error);
+      // Category loading failures are non-blocking - suggestions will show IDs instead of names
+      console.warn('Failed to load categories for name display:', error instanceof Error ? error.message : error);
     }
   }
 

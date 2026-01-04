@@ -206,6 +206,7 @@
               <th class="text-left">{{ 'transactions.type' | translate }}</th>
               <th class="text-right">{{ 'transactions.amount' | translate }}</th>
               <th class="text-left">{{ 'import.counterparty' | translate }}</th>
+              <th class="text-left">{{ 'import.description' | translate }}</th>
               <th class="text-left">{{ 'import.suggestedCategory' | translate }}</th>
             </tr>
           </ng-template>
@@ -225,8 +226,11 @@
               <td class="text-right font-mono">
                 {{ formatCentsToAmount(tx.amountCents) | currency:'EUR' }}
               </td>
-              <td class="truncate max-w-[150px]" [pTooltip]="tx.counterparty">
+              <td class="truncate max-w-[120px]" [pTooltip]="tx.counterparty">
                 {{ tx.counterparty || '-' }}
+              </td>
+              <td class="truncate max-w-[150px]" [pTooltip]="tx.description">
+                {{ tx.description || '-' }}
               </td>
               <td>
                 @if (tx.suggestion?.categoryName) {
