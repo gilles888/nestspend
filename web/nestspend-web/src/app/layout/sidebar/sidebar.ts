@@ -24,6 +24,7 @@ export class SidebarComponent {
     { labelKey: 'nav.dashboard', icon: 'pi pi-home', route: '/dashboard' },
     { labelKey: 'nav.transactions', icon: 'pi pi-list', route: '/transactions' },
     { labelKey: 'nav.categories', icon: 'pi pi-tags', route: '/categories' },
+    { labelKey: 'nav.classificationRules', icon: 'pi pi-cog', route: '/classification-rules' },
     { labelKey: 'nav.accounts', icon: 'pi pi-wallet', route: '/accounts' },
   ];
 
