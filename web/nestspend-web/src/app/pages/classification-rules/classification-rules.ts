@@ -107,6 +107,7 @@ export class ClassificationRulesComponent implements OnInit {
       const response = await this.categoriesService.getAllCategories$Response();
       let categories = response.body;
 
+      // Handle Blob response from OpenAPI spec (same pattern as categories page)
       if (categories instanceof Blob) {
         const text = await categories.text();
         categories = JSON.parse(text);
@@ -115,6 +116,11 @@ export class ClassificationRulesComponent implements OnInit {
       this.categories.set(Array.isArray(categories) ? categories : []);
     } catch (error) {
       console.error('Error loading categories:', error);
+      this.messageService.add({
+        severity: 'warn',
+        summary: this.translateService.instant('common.error') || 'Error',
+        detail: this.translateService.instant('categories.loadError'),
+      });
     }
   }
 
