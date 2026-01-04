@@ -65,6 +65,8 @@ export class ImportTransactionsService {
       existingKeys: new Set(),
       transactionsToImport: [],
     });
+    // Clear categories cache to force reload on next import
+    this.categoriesMap.clear();
   }
 
   /**
@@ -135,14 +137,14 @@ export class ImportTransactionsService {
   private async applyClassificationSuggestions(
     transactions: NormalizedImportedTransaction[]
   ): Promise<NormalizedImportedTransaction[]> {
+    // Always load categories first (needed for dropdown even without suggestions)
+    await this.loadCategories();
+
     if (transactions.length === 0) {
       return transactions;
     }
 
     try {
-      // Load categories for name lookup
-      await this.loadCategories();
-
       // Build request for classification API
       const transactionsToClassify: TransactionToClassify[] = transactions.map((t) => ({
         merchant: t.counterparty || undefined,
@@ -190,16 +192,24 @@ export class ImportTransactionsService {
 
   /**
    * Load categories and cache them.
+   * @param forceReload Force reload even if already cached
    */
-  private async loadCategories(): Promise<void> {
-    if (this.categoriesMap.size > 0) {
+  async loadCategories(forceReload: boolean = false): Promise<void> {
+    if (this.categoriesMap.size > 0 && !forceReload) {
       return; // Already loaded
     }
 
     try {
-      const categories = await this.categoriesService.getAllCategories();
+      const response = await this.categoriesService.getAllCategories$Response();
+      let categories = response.body;
+      // Handle Blob response (can happen with some ng-openapi-gen configurations)
+      if (categories instanceof Blob) {
+        const text = await categories.text();
+        categories = JSON.parse(text);
+      }
       this.categoriesMap.clear();
-      for (const cat of categories) {
+      const categoriesArray = Array.isArray(categories) ? categories : [];
+      for (const cat of categoriesArray) {
         if (cat.id) {
           this.categoriesMap.set(cat.id, cat);
         }
