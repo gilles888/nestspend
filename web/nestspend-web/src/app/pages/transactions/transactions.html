@@ -9,13 +9,22 @@
         {{ 'transactions.subtitle' | translate }}
       </p>
     </div>
-    <button
-      (click)="openAddDialog()"
-      class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-dark text-white font-medium rounded-xl shadow-elevated hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
-    >
-      <i class="pi pi-plus"></i>
-      <span>{{ 'transactions.addTransaction' | translate }}</span>
-    </button>
+    <div class="flex flex-wrap gap-3">
+      <button
+        (click)="openImportDialog()"
+        class="inline-flex items-center gap-2 px-5 py-2.5 bg-surface dark:bg-dark-surface border border-border dark:border-dark-border text-text-main dark:text-dark-text-main font-medium rounded-xl shadow-card hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+      >
+        <i class="pi pi-upload"></i>
+        <span>{{ 'import.importButton' | translate }}</span>
+      </button>
+      <button
+        (click)="openAddDialog()"
+        class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-dark text-white font-medium rounded-xl shadow-elevated hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+      >
+        <i class="pi pi-plus"></i>
+        <span>{{ 'transactions.addTransaction' | translate }}</span>
+      </button>
+    </div>
   </div>
 
   <!-- Filters -->
@@ -346,6 +355,13 @@
     </div>
   </form>
 </p-dialog>
+
+<!-- Import Dialog -->
+<app-import-transactions-dialog
+  [visible]="importDialogVisible()"
+  (visibleChange)="importDialogVisible.set($event)"
+  (importCompleted)="onImportCompleted()"
+></app-import-transactions-dialog>
 
 <!-- Confirm Dialog -->
 <p-confirmDialog></p-confirmDialog>
