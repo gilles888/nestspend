@@ -167,7 +167,7 @@
                   'text-danger': tx.type === 'EXPENSE'
                 }"
               >
-                {{ tx.type === 'INCOME' ? '+' : '-' }}{{ formatCentsToAmount(tx.amountCents) | currency }}
+                {{ tx.type === 'INCOME' ? '+' : '-' }}{{ formatCentsToAmount(tx.amountCents) | currency:'EUR' }}
               </td>
               <td class="text-center">
                 <div class="flex items-center justify-center gap-2">
@@ -273,8 +273,8 @@
         <p-inputnumber
           formControlName="amountCents"
           mode="currency"
-          currency="USD"
-          locale="en-US"
+          currency="EUR"
+          locale="fr-FR"
           [minFractionDigits]="2"
           [maxFractionDigits]="2"
           styleClass="w-full"
