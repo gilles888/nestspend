@@ -180,13 +180,22 @@ export class ImportTransactionsService {
       await this.initializeDefaultRulesIfNeeded();
       
       // Build request for classification API
-      const transactionsToClassify: TransactionToClassify[] = transactions.map((t) => ({
-        merchant: t.counterparty || undefined,
-        communication: t.description || undefined,
-        iban: t.iban || undefined,
-        amount: t.amountCents,
-        date: this.formatDate(t.importedDate),
-      }));
+      // Combine counterparty and description to maximize classification chances
+      // The backend will search through all text fields (merchant, communication) for rule matching
+      const transactionsToClassify: TransactionToClassify[] = transactions.map((t) => {
+        // Combine all available text data for better classification matching
+        const allText = [t.counterparty, t.description].filter(Boolean).join(' ');
+        
+        return {
+          // Use counterparty as primary merchant, or fallback to combined text
+          merchant: t.counterparty || allText || undefined,
+          // Send all text as communication for secondary matching
+          communication: allText || undefined,
+          iban: t.iban || undefined,
+          amount: t.amountCents,
+          date: this.formatDate(t.importedDate),
+        };
+      });
 
       // Call classification API
       const response = await this.classificationService.suggest({
