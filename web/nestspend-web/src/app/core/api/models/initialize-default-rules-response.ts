@@ -5,7 +5,7 @@
 /**
  * Response for initialize defaults operation
  */
-export interface InitializeDefaultsResponse {
+export interface InitializeDefaultRulesResponse {
 
   /**
    * Status message

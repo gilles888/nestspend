@@ -23,7 +23,7 @@ export type { ImportError } from './models/import-error';
 export type { ImportTransactionItem } from './models/import-transaction-item';
 export type { ImportTransactionRequest } from './models/import-transaction-request';
 export type { ImportTransactionResponse } from './models/import-transaction-response';
-export type { InitializeDefaultsResponse } from './models/initialize-defaults-response';
+export type { InitializeDefaultRulesResponse } from './models/initialize-default-rules-response';
 export type { LoginRequest } from './models/login-request';
 export type { RegisterRequest } from './models/register-request';
 export type { TransactionCreateRequest } from './models/transaction-create-request';
