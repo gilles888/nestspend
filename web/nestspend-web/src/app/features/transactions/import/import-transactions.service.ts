@@ -1,10 +1,8 @@
 import { Injectable, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
 import { TransactionsService } from '../../../core/api/services/transactions.service';
 import { ClassificationService } from '../../../core/api/services/classification.service';
+import { ClassificationRulesService } from '../../../core/api/services/classification-rules.service';
 import { CategoriesService } from '../../../core/api/services/categories.service';
-import { ApiConfiguration } from '../../../core/api/api-configuration';
 import { ImportTransactionItem } from '../../../core/api/models/import-transaction-item';
 import { ImportTransactionResponse } from '../../../core/api/models/import-transaction-response';
 import { TransactionToClassify } from '../../../core/api/models/transaction-to-classify';
@@ -52,10 +50,9 @@ export class ImportTransactionsService {
   private defaultRulesInitialized = false;
 
   constructor(
-    private http: HttpClient,
-    private apiConfig: ApiConfiguration,
     private transactionsService: TransactionsService,
     private classificationService: ClassificationService,
+    private classificationRulesService: ClassificationRulesService,
     private categoriesService: CategoriesService,
     private parserFactory: BankParserFactory
   ) {}
@@ -150,15 +147,10 @@ export class ImportTransactionsService {
 
     try {
       // Call the backend endpoint to initialize default rules if needed
-      // Use the configured API root URL to ensure correct backend address
-      const response = await firstValueFrom(
-        this.http.post<{ success: boolean; rulesCreated: number; message: string }>(
-          `${this.apiConfig.rootUrl}/api/classification-rules/initialize-defaults`,
-          {}
-        )
-      );
+      // Use the generated OpenAPI service for type-safety and correct URL
+      const response = await this.classificationRulesService.initializeDefaults();
       
-      if (response.rulesCreated > 0) {
+      if (response.rulesCreated && response.rulesCreated > 0) {
         console.log(`Initialized ${response.rulesCreated} default classification rules`);
       }
       

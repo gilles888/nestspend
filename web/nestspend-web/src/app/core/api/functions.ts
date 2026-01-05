@@ -25,6 +25,8 @@ export type { GetAllRules$Params as GetAllRules$Params } from './fn/classificati
 export { getAllRules as getAllRules } from './fn/classification-rules/get-all-rules';
 export type { CreateRule$Params as CreateRule$Params } from './fn/classification-rules/create-rule';
 export { createRule as createRule } from './fn/classification-rules/create-rule';
+export type { InitializeDefaults$Params as InitializeDefaults$Params } from './fn/classification-rules/initialize-defaults';
+export { initializeDefaults as initializeDefaults } from './fn/classification-rules/initialize-defaults';
 export type { GetCategoryById$Params as GetCategoryById$Params } from './fn/categories/get-category-by-id';
 export { getCategoryById as getCategoryById } from './fn/categories/get-category-by-id';
 export type { UpdateCategory$Params as UpdateCategory$Params } from './fn/categories/update-category';
