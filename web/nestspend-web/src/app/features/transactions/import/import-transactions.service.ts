@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { TransactionsService } from '../../../core/api/services/transactions.service';
 import { ClassificationService } from '../../../core/api/services/classification.service';
 import { CategoriesService } from '../../../core/api/services/categories.service';
+import { ApiConfiguration } from '../../../core/api/api-configuration';
 import { ImportTransactionItem } from '../../../core/api/models/import-transaction-item';
 import { ImportTransactionResponse } from '../../../core/api/models/import-transaction-response';
 import { TransactionToClassify } from '../../../core/api/models/transaction-to-classify';
@@ -52,6 +53,7 @@ export class ImportTransactionsService {
 
   constructor(
     private http: HttpClient,
+    private apiConfig: ApiConfiguration,
     private transactionsService: TransactionsService,
     private classificationService: ClassificationService,
     private categoriesService: CategoriesService,
@@ -148,9 +150,10 @@ export class ImportTransactionsService {
 
     try {
       // Call the backend endpoint to initialize default rules if needed
+      // Use the configured API root URL to ensure correct backend address
       const response = await firstValueFrom(
         this.http.post<{ success: boolean; rulesCreated: number; message: string }>(
-          '/api/classification-rules/initialize-defaults',
+          `${this.apiConfig.rootUrl}/api/classification-rules/initialize-defaults`,
           {}
         )
       );
