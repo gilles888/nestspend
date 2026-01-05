@@ -7,13 +7,13 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
-import { InitializeDefaultsResponse } from '../../models/initialize-defaults-response';
+import { InitializeDefaultRulesResponse } from '../../models/initialize-default-rules-response';
 
-export interface InitializeDefaults$Params {
+export interface InitializeDefaultRules$Params {
 }
 
-export function initializeDefaults(http: HttpClient, rootUrl: string, params?: InitializeDefaults$Params, context?: HttpContext): Observable<StrictHttpResponse<InitializeDefaultsResponse>> {
-  const rb = new RequestBuilder(rootUrl, initializeDefaults.PATH, 'post');
+export function initializeDefaultRules(http: HttpClient, rootUrl: string, params?: InitializeDefaultRules$Params, context?: HttpContext): Observable<StrictHttpResponse<InitializeDefaultRulesResponse>> {
+  const rb = new RequestBuilder(rootUrl, initializeDefaultRules.PATH, 'post');
   if (params) {
   }
 
@@ -22,9 +22,9 @@ export function initializeDefaults(http: HttpClient, rootUrl: string, params?: I
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<InitializeDefaultsResponse>;
+      return r as StrictHttpResponse<InitializeDefaultRulesResponse>;
     })
   );
 }
 
-initializeDefaults.PATH = '/api/classification-rules/initialize-defaults';
+initializeDefaultRules.PATH = '/api/classification-rules/initialize-defaults';

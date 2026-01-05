@@ -148,7 +148,7 @@ export class ImportTransactionsService {
     try {
       // Call the backend endpoint to initialize default rules if needed
       // Use the generated OpenAPI service for type-safety and correct URL
-      const response = await this.classificationRulesService.initializeDefaults();
+      const response = await this.classificationRulesService.initializeDefaultRules();
       
       if (response.rulesCreated && response.rulesCreated > 0) {
         console.log(`Initialized ${response.rulesCreated} default classification rules`);

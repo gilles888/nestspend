@@ -18,9 +18,9 @@ import { getAllRules } from '../fn/classification-rules/get-all-rules';
 import { GetAllRules$Params } from '../fn/classification-rules/get-all-rules';
 import { getRuleById } from '../fn/classification-rules/get-rule-by-id';
 import { GetRuleById$Params } from '../fn/classification-rules/get-rule-by-id';
-import { initializeDefaults } from '../fn/classification-rules/initialize-defaults';
-import { InitializeDefaults$Params } from '../fn/classification-rules/initialize-defaults';
-import { InitializeDefaultsResponse } from '../models/initialize-defaults-response';
+import { initializeDefaultRules } from '../fn/classification-rules/initialize-default-rules';
+import { InitializeDefaultRules$Params } from '../fn/classification-rules/initialize-default-rules';
+import { InitializeDefaultRulesResponse } from '../models/initialize-default-rules-response';
 import { updateRule } from '../fn/classification-rules/update-rule';
 import { UpdateRule$Params } from '../fn/classification-rules/update-rule';
 
@@ -199,8 +199,8 @@ export class ClassificationRulesService extends BaseService {
     return resp.then((r: StrictHttpResponse<ClassificationRuleResponse>): ClassificationRuleResponse => r.body);
   }
 
-  /** Path part for operation `initializeDefaults()` */
-  static readonly InitializeDefaultsPath = '/api/classification-rules/initialize-defaults';
+  /** Path part for operation `initializeDefaultRules()` */
+  static readonly InitializeDefaultRulesPath = '/api/classification-rules/initialize-defaults';
 
   /**
    * Initialize default classification rules.
@@ -208,12 +208,12 @@ export class ClassificationRulesService extends BaseService {
    * Creates default classification rules for the current user's household if none exist. This is useful for existing users who registered before the auto-categorization feature was added.
    *
    * This method provides access to the full `HttpResponse`, allowing access to response headers.
-   * To access only the response body, use `initializeDefaults()` instead.
+   * To access only the response body, use `initializeDefaultRules()` instead.
    *
    * This method doesn't expect any request body.
    */
-  initializeDefaults$Response(params?: InitializeDefaults$Params, context?: HttpContext): Promise<StrictHttpResponse<InitializeDefaultsResponse>> {
-    const obs = initializeDefaults(this.http, this.rootUrl, params, context);
+  initializeDefaultRules$Response(params?: InitializeDefaultRules$Params, context?: HttpContext): Promise<StrictHttpResponse<InitializeDefaultRulesResponse>> {
+    const obs = initializeDefaultRules(this.http, this.rootUrl, params, context);
     return firstValueFrom(obs);
   }
 
@@ -223,13 +223,13 @@ export class ClassificationRulesService extends BaseService {
    * Creates default classification rules for the current user's household if none exist. This is useful for existing users who registered before the auto-categorization feature was added.
    *
    * This method provides access only to the response body.
-   * To access the full response (for headers, for example), `initializeDefaults$Response()` instead.
+   * To access the full response (for headers, for example), `initializeDefaultRules$Response()` instead.
    *
    * This method doesn't expect any request body.
    */
-  initializeDefaults(params?: InitializeDefaults$Params, context?: HttpContext): Promise<InitializeDefaultsResponse> {
-    const resp = this.initializeDefaults$Response(params, context);
-    return resp.then((r: StrictHttpResponse<InitializeDefaultsResponse>): InitializeDefaultsResponse => r.body);
+  initializeDefaultRules(params?: InitializeDefaultRules$Params, context?: HttpContext): Promise<InitializeDefaultRulesResponse> {
+    const resp = this.initializeDefaultRules$Response(params, context);
+    return resp.then((r: StrictHttpResponse<InitializeDefaultRulesResponse>): InitializeDefaultRulesResponse => r.body);
   }
 
 }

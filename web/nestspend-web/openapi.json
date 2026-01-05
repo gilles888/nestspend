@@ -1277,14 +1277,14 @@
         ],
         "summary": "Initialize default classification rules",
         "description": "Creates default classification rules for the current user's household if none exist. This is useful for existing users who registered before the auto-categorization feature was added.",
-        "operationId": "initializeDefaults",
+        "operationId": "initializeDefaultRules",
         "responses": {
           "200": {
             "description": "Successfully initialized default rules",
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/InitializeDefaultsResponse"
+                  "$ref": "#/components/schemas/InitializeDefaultRulesResponse"
                 }
               }
             }
@@ -2365,7 +2365,7 @@
           }
         }
       },
-      "InitializeDefaultsResponse": {
+      "InitializeDefaultRulesResponse": {
         "type": "object",
         "description": "Response for initialize defaults operation",
         "properties": {
