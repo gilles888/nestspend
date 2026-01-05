@@ -204,15 +204,19 @@ export class ImportTransactionsService {
 
       // Apply suggestions to transactions
       const suggestions = response.suggestions || [];
+      console.log('[Classification] Received suggestions:', suggestions.length, 'for', transactions.length, 'transactions');
+      console.log('[Classification] Categories loaded:', this.categoriesMap.size);
+      
       return transactions.map((t, index) => {
         const suggestion = suggestions[index];
         if (suggestion && suggestion.categoryId) {
           const category = this.categoriesMap.get(suggestion.categoryId);
+          console.log(`[Classification] Transaction ${index}: categoryId=${suggestion.categoryId}, category found=${!!category}, confidence=${suggestion.confidence}, label=${suggestion.confidenceLabel}`);
           return {
             ...t,
             suggestion: {
               categoryId: suggestion.categoryId,
-              categoryName: category?.name,
+              categoryName: category?.name || `Category ${suggestion.categoryId.substring(0, 8)}...`,
               confidence: suggestion.confidence,
               confidenceLabel: suggestion.confidenceLabel,
               ruleId: suggestion.ruleId,
@@ -239,10 +243,12 @@ export class ImportTransactionsService {
    */
   async loadCategories(forceReload: boolean = false): Promise<void> {
     if (this.categoriesMap.size > 0 && !forceReload) {
+      console.log('[Classification] Categories already cached:', this.categoriesMap.size);
       return; // Already loaded
     }
 
     try {
+      console.log('[Classification] Loading categories from API...');
       const response = await this.categoriesService.getAllCategories$Response();
       let categories = response.body;
       // Handle Blob response (can happen with some ng-openapi-gen configurations)
@@ -256,6 +262,10 @@ export class ImportTransactionsService {
         if (cat.id) {
           this.categoriesMap.set(cat.id, cat);
         }
+      }
+      console.log('[Classification] Categories loaded:', this.categoriesMap.size, 'categories');
+      if (this.categoriesMap.size > 0) {
+        console.log('[Classification] Sample category IDs:', Array.from(this.categoriesMap.keys()).slice(0, 3));
       }
     } catch (error) {
       // Category loading failures are non-blocking - suggestions will show IDs instead of names

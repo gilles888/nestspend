@@ -234,24 +234,26 @@
               </td>
               <td>
                 <div class="flex items-center gap-2">
+                  <!-- Category dropdown with suggested category pre-selected -->
                   <p-select
                     [options]="getCategoryOptions()"
                     [ngModel]="tx.selectedCategoryId || null"
                     (ngModelChange)="onCategoryChange(tx, $event)"
                     optionLabel="label"
                     optionValue="value"
-                    [placeholder]="'transactions.selectCategory' | translate"
+                    [placeholder]="tx.suggestion?.categoryName || ('transactions.selectCategory' | translate)"
                     [filter]="true"
                     filterBy="label"
                     [showClear]="true"
-                    styleClass="w-full min-w-[140px]"
+                    styleClass="w-full min-w-[160px]"
                   ></p-select>
-                  @if (tx.suggestion?.confidenceLabel) {
+                  <!-- Confidence badge - shows if suggestion exists -->
+                  @if (tx.suggestion) {
                     <p-tag
-                      [value]="tx.suggestion.confidenceLabel"
+                      [value]="tx.suggestion.confidenceLabel || 'AUTO'"
                       [severity]="getConfidenceSeverity(tx.suggestion.confidenceLabel)"
-                      [pTooltip]="'import.confidenceScore' | translate: { score: tx.suggestion.confidence }"
-                      styleClass="text-xs"
+                      [pTooltip]="('import.confidenceScore' | translate: { score: tx.suggestion.confidence || 0 }) + ' - ' + (tx.suggestion.categoryName || 'Unknown')"
+                      styleClass="text-xs whitespace-nowrap"
                     ></p-tag>
                   }
                 </div>
