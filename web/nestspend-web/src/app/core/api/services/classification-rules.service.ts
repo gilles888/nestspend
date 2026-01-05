@@ -20,7 +20,6 @@ import { getRuleById } from '../fn/classification-rules/get-rule-by-id';
 import { GetRuleById$Params } from '../fn/classification-rules/get-rule-by-id';
 import { initializeDefaultRules } from '../fn/classification-rules/initialize-default-rules';
 import { InitializeDefaultRules$Params } from '../fn/classification-rules/initialize-default-rules';
-import { InitializeDefaultRulesResponse } from '../models/initialize-default-rules-response';
 import { updateRule } from '../fn/classification-rules/update-rule';
 import { UpdateRule$Params } from '../fn/classification-rules/update-rule';
 
@@ -212,7 +211,9 @@ export class ClassificationRulesService extends BaseService {
    *
    * This method doesn't expect any request body.
    */
-  initializeDefaultRules$Response(params?: InitializeDefaultRules$Params, context?: HttpContext): Promise<StrictHttpResponse<InitializeDefaultRulesResponse>> {
+  initializeDefaultRules$Response(params?: InitializeDefaultRules$Params, context?: HttpContext): Promise<StrictHttpResponse<{
+[key: string]: any;
+}>> {
     const obs = initializeDefaultRules(this.http, this.rootUrl, params, context);
     return firstValueFrom(obs);
   }
@@ -227,9 +228,15 @@ export class ClassificationRulesService extends BaseService {
    *
    * This method doesn't expect any request body.
    */
-  initializeDefaultRules(params?: InitializeDefaultRules$Params, context?: HttpContext): Promise<InitializeDefaultRulesResponse> {
+  initializeDefaultRules(params?: InitializeDefaultRules$Params, context?: HttpContext): Promise<{
+[key: string]: any;
+}> {
     const resp = this.initializeDefaultRules$Response(params, context);
-    return resp.then((r: StrictHttpResponse<InitializeDefaultRulesResponse>): InitializeDefaultRulesResponse => r.body);
+    return resp.then((r: StrictHttpResponse<{
+[key: string]: any;
+}>): {
+[key: string]: any;
+} => r.body);
   }
 
 }

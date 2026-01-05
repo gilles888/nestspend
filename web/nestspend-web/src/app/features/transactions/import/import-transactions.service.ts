@@ -45,7 +45,7 @@ export class ImportTransactionsService {
 
   // Categories cache for displaying names
   private categoriesMap: Map<string, CategoryResponse> = new Map();
-  
+
   // Track if we've already initialized default rules
   private defaultRulesInitialized = false;
 
@@ -149,11 +149,11 @@ export class ImportTransactionsService {
       // Call the backend endpoint to initialize default rules if needed
       // Use the generated OpenAPI service for type-safety and correct URL
       const response = await this.classificationRulesService.initializeDefaultRules();
-      
-      if (response.rulesCreated && response.rulesCreated > 0) {
-        console.log(`Initialized ${response.rulesCreated} default classification rules`);
+
+      if (response['rulesCreated'] && response['rulesCreated'] > 0) {
+        console.log(`Initialized ${response['rulesCreated']} default classification rules`);
       }
-      
+
       this.defaultRulesInitialized = true;
     } catch (error) {
       // Non-blocking error - rules might already exist or endpoint not available
@@ -178,14 +178,14 @@ export class ImportTransactionsService {
     try {
       // Initialize default rules if this is the first classification attempt
       await this.initializeDefaultRulesIfNeeded();
-      
+
       // Build request for classification API
       // Combine counterparty and description to maximize classification chances
       // The backend will search through all text fields (merchant, communication) for rule matching
       const transactionsToClassify: TransactionToClassify[] = transactions.map((t) => {
         // Combine all available text data for better classification matching
         const allText = [t.counterparty, t.description].filter(Boolean).join(' ');
-        
+
         return {
           // Use counterparty as primary merchant, or fallback to combined text
           merchant: t.counterparty || allText || undefined,
