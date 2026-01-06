@@ -333,12 +333,25 @@ export class ImportTransactionsDialogComponent implements OnInit {
 
   /**
    * Get category options for dropdown.
+   * Returns empty array if categories not yet loaded.
    */
   getCategoryOptions(): { label: string; value: string }[] {
-    return this.importService.getCategories().map((c) => ({
+    const categories = this.importService.getCategories();
+    console.log('[ImportDialog] getCategoryOptions called, categories count:', categories.length);
+    return categories.map((c) => ({
       label: c.name || 'Unknown',
       value: c.id || '',
     }));
+  }
+
+  /**
+   * Get category name by ID (for display)
+   */
+  getCategoryName(categoryId: string | undefined): string {
+    if (!categoryId) return '';
+    const categories = this.importService.getCategories();
+    const category = categories.find(c => c.id === categoryId);
+    return category?.name || '';
   }
 
   /**

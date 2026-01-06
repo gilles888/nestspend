@@ -237,7 +237,7 @@
                   <!-- Category dropdown with suggested category pre-selected -->
                   <p-select
                     [options]="getCategoryOptions()"
-                    [ngModel]="tx.selectedCategoryId || null"
+                    [(ngModel)]="tx.selectedCategoryId"
                     (ngModelChange)="onCategoryChange(tx, $event)"
                     optionLabel="label"
                     optionValue="value"
@@ -247,6 +247,12 @@
                     [showClear]="true"
                     styleClass="w-full min-w-[160px]"
                   ></p-select>
+                  <!-- Show selected category name if no option is visually selected but we have a suggestion -->
+                  @if (tx.selectedCategoryId && !getCategoryName(tx.selectedCategoryId) && tx.suggestion?.categoryName) {
+                    <span class="text-xs text-gray-500 truncate max-w-[100px]" [pTooltip]="tx.suggestion.categoryName">
+                      {{ tx.suggestion.categoryName }}
+                    </span>
+                  }
                   <!-- Confidence badge - shows if suggestion exists -->
                   @if (tx.suggestion) {
                     <p-tag
