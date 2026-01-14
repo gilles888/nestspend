@@ -1,11 +1,21 @@
 package be.gilmotech.nestspend.controller;
 
-import be.gilmotech.nestspend.domain.entity.*;
+import be.gilmotech.nestspend.domain.entity.Account;
+import be.gilmotech.nestspend.domain.entity.Category;
+import be.gilmotech.nestspend.domain.entity.ClassificationRule;
+import be.gilmotech.nestspend.domain.entity.Household;
+import be.gilmotech.nestspend.domain.entity.Transaction;
+import be.gilmotech.nestspend.domain.entity.User;
 import be.gilmotech.nestspend.domain.enums.MatchType;
 import be.gilmotech.nestspend.domain.enums.RuleField;
 import be.gilmotech.nestspend.domain.enums.RuleSource;
 import be.gilmotech.nestspend.domain.enums.UserRole;
-import be.gilmotech.nestspend.domain.repository.*;
+import be.gilmotech.nestspend.domain.repository.AccountRepository;
+import be.gilmotech.nestspend.domain.repository.CategoryRepository;
+import be.gilmotech.nestspend.domain.repository.ClassificationRuleRepository;
+import be.gilmotech.nestspend.domain.repository.HouseholdRepository;
+import be.gilmotech.nestspend.domain.repository.TransactionRepository;
+import be.gilmotech.nestspend.domain.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,9 +27,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc

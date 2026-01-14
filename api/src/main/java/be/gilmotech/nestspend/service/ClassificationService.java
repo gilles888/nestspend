@@ -9,14 +9,27 @@ import be.gilmotech.nestspend.domain.repository.CategoryRepository;
 import be.gilmotech.nestspend.domain.repository.ClassificationRuleRepository;
 import be.gilmotech.nestspend.domain.repository.HouseholdRepository;
 import be.gilmotech.nestspend.domain.repository.TransactionRepository;
-import be.gilmotech.nestspend.dto.classification.*;
+import be.gilmotech.nestspend.dto.classification.ClassificationRuleCreateRequest;
+import be.gilmotech.nestspend.dto.classification.ClassificationRuleResponse;
+import be.gilmotech.nestspend.dto.classification.ClassificationRuleUpdateRequest;
+import be.gilmotech.nestspend.dto.classification.ClassificationSuggestRequest;
+import be.gilmotech.nestspend.dto.classification.ClassificationSuggestResponse;
+import be.gilmotech.nestspend.dto.classification.ClassificationSuggestion;
+import be.gilmotech.nestspend.dto.classification.LearningResult;
+import be.gilmotech.nestspend.dto.classification.TransactionToClassify;
 import be.gilmotech.nestspend.exception.ResourceNotFoundException;
 import be.gilmotech.nestspend.security.CurrentUserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.Normalizer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -896,10 +909,11 @@ public class ClassificationService {
             UUID categoryId = (UUID) row[1];
             String categoryName = (String) row[2];
             long count = (Long) row[3];
+            int countInt = (int) count;
             
             merchantStats.computeIfAbsent(merchant, k -> new ArrayList<>())
-                    .add(new MerchantCategoryStat(categoryId, categoryName, (int) count));
-            totalTransactions += count;
+                    .add(new MerchantCategoryStat(categoryId, categoryName, countInt));
+            totalTransactions += countInt;
         }
 
         List<LearningResult.RuleDetail> createdRules = new ArrayList<>();
@@ -923,7 +937,9 @@ public class ClassificationService {
             }
             
             // Find the dominant category
-            MerchantCategoryStat dominant = categoryStats.get(0); // Already sorted by count DESC
+            // Note: categoryStats is ordered by count DESC (from SQL query ORDER BY merchant, COUNT(t) DESC)
+            // so the first element is always the dominant category
+            MerchantCategoryStat dominant = categoryStats.get(0);
             double ratio = (double) dominant.count() / totalForMerchant;
             
             // Check minimum ratio threshold
