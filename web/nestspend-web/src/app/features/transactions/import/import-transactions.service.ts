@@ -142,22 +142,27 @@ export class ImportTransactionsService {
    */
   private async initializeDefaultRulesIfNeeded(): Promise<void> {
     if (this.defaultRulesInitialized) {
+      console.log('[Classification] Default rules already initialized this session');
       return; // Already checked this session
     }
 
     try {
+      console.log('[Classification] Initializing default rules...');
       // Call the backend endpoint to initialize default rules if needed
       // Use the generated OpenAPI service for type-safety and correct URL
       const response = await this.classificationRulesService.initializeDefaultRules();
 
+      console.log('[Classification] initializeDefaultRules response:', response);
       if (response['rulesCreated'] && response['rulesCreated'] > 0) {
-        console.log(`Initialized ${response['rulesCreated']} default classification rules`);
+        console.log(`[Classification] Initialized ${response['rulesCreated']} default classification rules`);
+      } else {
+        console.log('[Classification] No new rules created (rules may already exist)');
       }
 
       this.defaultRulesInitialized = true;
     } catch (error) {
       // Non-blocking error - rules might already exist or endpoint not available
-      console.warn('Could not initialize default rules:', error instanceof Error ? error.message : error);
+      console.warn('[Classification] Could not initialize default rules:', error instanceof Error ? error.message : error);
       this.defaultRulesInitialized = true; // Don't retry
     }
   }
@@ -197,15 +202,31 @@ export class ImportTransactionsService {
         };
       });
 
+      // Debug: Log what we're sending to the API
+      console.log('[Classification] Sending to API:', transactionsToClassify.length, 'transactions');
+      console.log('[Classification] Sample transactions:', transactionsToClassify.slice(0, 3).map(t => ({
+        merchant: t.merchant?.substring(0, 50),
+        communication: t.communication?.substring(0, 50),
+        iban: t.iban
+      })));
+      
       // Call classification API
       const response = await this.classificationService.suggest({
         body: { transactions: transactionsToClassify },
       });
 
       // Apply suggestions to transactions
+      console.log('[Classification] Raw API response:', JSON.stringify(response).substring(0, 500));
       const suggestions = response.suggestions || [];
       console.log('[Classification] Received suggestions:', suggestions.length, 'for', transactions.length, 'transactions');
       console.log('[Classification] Categories loaded:', this.categoriesMap.size);
+      
+      // Count suggestions that have a non-null categoryId (actual matches)
+      const matchedSuggestions = suggestions.filter(s => s?.categoryId);
+      console.log('[Classification] Matched suggestions (with categoryId):', matchedSuggestions.length);
+      if (matchedSuggestions.length > 0) {
+        console.log('[Classification] Sample matched suggestion:', matchedSuggestions[0]);
+      }
       
       return transactions.map((t, index) => {
         const suggestion = suggestions[index];
