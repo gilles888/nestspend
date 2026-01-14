@@ -37,6 +37,13 @@ export const routes: Routes = [
           import('./pages/categories/categories').then((m) => m.CategoriesComponent),
       },
       {
+        path: 'classification-rules',
+        loadComponent: () =>
+          import('./pages/classification-rules/classification-rules').then(
+            (m) => m.ClassificationRulesComponent
+          ),
+      },
+      {
         path: 'accounts',
         loadComponent: () =>
           import('./pages/accounts/accounts').then((m) => m.AccountsComponent),

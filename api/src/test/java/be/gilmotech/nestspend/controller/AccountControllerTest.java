@@ -7,6 +7,7 @@ import be.gilmotech.nestspend.domain.enums.AccountType;
 import be.gilmotech.nestspend.domain.enums.UserRole;
 import be.gilmotech.nestspend.domain.repository.AccountRepository;
 import be.gilmotech.nestspend.domain.repository.CategoryRepository;
+import be.gilmotech.nestspend.domain.repository.ClassificationRuleRepository;
 import be.gilmotech.nestspend.domain.repository.HouseholdRepository;
 import be.gilmotech.nestspend.domain.repository.TransactionRepository;
 import be.gilmotech.nestspend.domain.repository.UserRepository;
@@ -50,12 +51,16 @@ class AccountControllerTest {
     private TransactionRepository transactionRepository;
 
     @Autowired
+    private ClassificationRuleRepository classificationRuleRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void setUp() {
         transactionRepository.deleteAll();
         accountRepository.deleteAll();
+        classificationRuleRepository.deleteAll();
         categoryRepository.deleteAll();
         userRepository.deleteAll();
         householdRepository.deleteAll();

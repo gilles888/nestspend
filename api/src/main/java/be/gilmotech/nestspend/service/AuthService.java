@@ -23,15 +23,17 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final CategoryService categoryService;
+    private final ClassificationService classificationService;
 
     public AuthService(UserRepository userRepository, HouseholdRepository householdRepository,
                        PasswordEncoder passwordEncoder, JwtService jwtService,
-                       CategoryService categoryService) {
+                       CategoryService categoryService, ClassificationService classificationService) {
         this.userRepository = userRepository;
         this.householdRepository = householdRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.categoryService = categoryService;
+        this.classificationService = classificationService;
     }
 
     @Transactional
@@ -47,6 +49,9 @@ public class AuthService {
 
         // Create default categories for the new household
         categoryService.createDefaultCategories(household);
+
+        // Create default classification rules for the new household
+        classificationService.createDefaultRules(household);
 
         User user = User.builder()
                 .household(household)

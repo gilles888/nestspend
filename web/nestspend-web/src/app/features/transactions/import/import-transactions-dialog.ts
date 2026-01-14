@@ -292,6 +292,19 @@ export class ImportTransactionsDialogComponent implements OnInit {
     return type === 'INCOME' ? 'success' : 'danger';
   }
 
+  getConfidenceSeverity(confidenceLabel: string | undefined): 'success' | 'warn' | 'danger' | 'secondary' {
+    switch (confidenceLabel) {
+      case 'HIGH':
+        return 'success';
+      case 'MEDIUM':
+        return 'warn';
+      case 'LOW':
+        return 'danger';
+      default:
+        return 'secondary';
+    }
+  }
+
   formatCentsToAmount(cents: number): number {
     return cents / 100;
   }
@@ -304,7 +317,58 @@ export class ImportTransactionsDialogComponent implements OnInit {
     return this.importService.state().transactionsToImport || [];
   }
 
-  getStats(): { total: number; ok: number; warnings: number; errors: number; duplicates: number } {
+  getStats(): {
+    total: number;
+    ok: number;
+    warnings: number;
+    errors: number;
+    duplicates: number;
+    categorized: number;
+    highConfidence: number;
+    mediumConfidence: number;
+    lowConfidence: number;
+  } {
     return this.importService.getParseStats();
+  }
+
+  /**
+   * Get category options for dropdown.
+   * Returns empty array if categories not yet loaded.
+   */
+  getCategoryOptions(): { label: string; value: string }[] {
+    const categories = this.importService.getCategories();
+    console.log('[ImportDialog] getCategoryOptions called, categories count:', categories.length);
+    return categories.map((c) => ({
+      label: c.name || 'Unknown',
+      value: c.id || '',
+    }));
+  }
+
+  /**
+   * Get category name by ID (for display)
+   */
+  getCategoryName(categoryId: string | undefined): string {
+    if (!categoryId) return '';
+    const categories = this.importService.getCategories();
+    const category = categories.find(c => c.id === categoryId);
+    return category?.name || '';
+  }
+
+  /**
+   * Handle category change for a transaction.
+   */
+  onCategoryChange(transaction: NormalizedImportedTransaction, categoryId: string | null): void {
+    const transactions = this.getParsedTransactions();
+    const index = transactions.indexOf(transaction);
+    if (index === -1) return;
+
+    const category = categoryId
+      ? this.importService.getCategories().find((c) => c.id === categoryId)
+      : null;
+    this.importService.updateTransactionCategory(
+      index,
+      categoryId,
+      category?.name || null
+    );
   }
 }

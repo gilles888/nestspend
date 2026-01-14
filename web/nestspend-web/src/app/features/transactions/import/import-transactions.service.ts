@@ -1,7 +1,12 @@
 import { Injectable, signal } from '@angular/core';
 import { TransactionsService } from '../../../core/api/services/transactions.service';
+import { ClassificationService } from '../../../core/api/services/classification.service';
+import { ClassificationRulesService } from '../../../core/api/services/classification-rules.service';
+import { CategoriesService } from '../../../core/api/services/categories.service';
 import { ImportTransactionItem } from '../../../core/api/models/import-transaction-item';
 import { ImportTransactionResponse } from '../../../core/api/models/import-transaction-response';
+import { TransactionToClassify } from '../../../core/api/models/transaction-to-classify';
+import { CategoryResponse } from '../../../core/api/models/category-response';
 import { BankParserFactory } from './parsers/bank-parser-factory';
 import {
   NormalizedImportedTransaction,
@@ -9,6 +14,7 @@ import {
   ParseResult,
   ImportWizardState,
   ImportStep,
+  ClassificationSuggestionInfo,
 } from './models/import.models';
 
 /**
@@ -37,8 +43,17 @@ export class ImportTransactionsService {
 
   readonly state = this._state.asReadonly();
 
+  // Categories cache for displaying names
+  private categoriesMap: Map<string, CategoryResponse> = new Map();
+
+  // Track if we've already initialized default rules
+  private defaultRulesInitialized = false;
+
   constructor(
     private transactionsService: TransactionsService,
+    private classificationService: ClassificationService,
+    private classificationRulesService: ClassificationRulesService,
+    private categoriesService: CategoriesService,
     private parserFactory: BankParserFactory
   ) {}
 
@@ -55,6 +70,8 @@ export class ImportTransactionsService {
       existingKeys: new Set(),
       transactionsToImport: [],
     });
+    // Clear categories cache to force reload on next import
+    this.categoriesMap.clear();
   }
 
   /**
@@ -98,15 +115,191 @@ export class ImportTransactionsService {
       detectedBankType !== 'UNKNOWN' ? detectedBankType : undefined
     );
 
+    // Apply classification suggestions to parsed transactions
+    const transactionsWithSuggestions = await this.applyClassificationSuggestions(
+      parseResult.transactions
+    );
+
+    const updatedParseResult = {
+      ...parseResult,
+      transactions: transactionsWithSuggestions,
+    };
+
     this._state.update((s) => ({
       ...s,
       file,
-      parseResult,
+      parseResult: updatedParseResult,
       bankType: parseResult.bankType,
-      transactionsToImport: parseResult.transactions.filter((t) => t.status !== 'ERROR'),
+      transactionsToImport: transactionsWithSuggestions.filter((t) => t.status !== 'ERROR'),
     }));
 
-    return parseResult;
+    return updatedParseResult;
+  }
+
+  /**
+   * Initialize default classification rules if none exist.
+   * This is called automatically before the first classification attempt.
+   */
+  private async initializeDefaultRulesIfNeeded(): Promise<void> {
+    if (this.defaultRulesInitialized) {
+      console.log('[Classification] Default rules already initialized this session');
+      return; // Already checked this session
+    }
+
+    try {
+      console.log('[Classification] Initializing default rules...');
+      // Call the backend endpoint to initialize default rules if needed
+      // Use the generated OpenAPI service for type-safety and correct URL
+      const response = await this.classificationRulesService.initializeDefaultRules();
+
+      console.log('[Classification] initializeDefaultRules response:', response);
+      if (response['rulesCreated'] && response['rulesCreated'] > 0) {
+        console.log(`[Classification] Initialized ${response['rulesCreated']} default classification rules`);
+      } else {
+        console.log('[Classification] No new rules created (rules may already exist)');
+      }
+
+      this.defaultRulesInitialized = true;
+    } catch (error) {
+      // Non-blocking error - rules might already exist or endpoint not available
+      console.warn('[Classification] Could not initialize default rules:', error instanceof Error ? error.message : error);
+      this.defaultRulesInitialized = true; // Don't retry
+    }
+  }
+
+  /**
+   * Apply classification suggestions to transactions.
+   */
+  private async applyClassificationSuggestions(
+    transactions: NormalizedImportedTransaction[]
+  ): Promise<NormalizedImportedTransaction[]> {
+    // Always load categories first (needed for dropdown even without suggestions)
+    await this.loadCategories();
+
+    if (transactions.length === 0) {
+      return transactions;
+    }
+
+    try {
+      // Initialize default rules if this is the first classification attempt
+      await this.initializeDefaultRulesIfNeeded();
+
+      // Build request for classification API
+      // Combine counterparty and description to maximize classification chances
+      // The backend will search through all text fields (merchant, communication) for rule matching
+      const transactionsToClassify: TransactionToClassify[] = transactions.map((t) => {
+        // Combine all available text data for better classification matching
+        const allText = [t.counterparty, t.description].filter(Boolean).join(' ');
+
+        return {
+          // Use counterparty as primary merchant, or fallback to combined text
+          merchant: t.counterparty || allText || undefined,
+          // Send all text as communication for secondary matching
+          communication: allText || undefined,
+          iban: t.iban || undefined,
+          amount: t.amountCents,
+          date: this.formatDate(t.importedDate),
+        };
+      });
+
+      // Debug: Log what we're sending to the API
+      console.log('[Classification] Sending to API:', transactionsToClassify.length, 'transactions');
+      console.log('[Classification] Sample transactions:', transactionsToClassify.slice(0, 3).map(t => ({
+        merchant: t.merchant?.substring(0, 50),
+        communication: t.communication?.substring(0, 50),
+        iban: t.iban
+      })));
+      
+      // Call classification API
+      let response = await this.classificationService.suggest({
+        body: { transactions: transactionsToClassify },
+      });
+
+      // Handle Blob response (can happen with some ng-openapi-gen configurations)
+      if (response instanceof Blob) {
+        console.log('[Classification] Response is a Blob, parsing as JSON...');
+        const text = await response.text();
+        response = JSON.parse(text);
+        console.log('[Classification] Parsed response:', JSON.stringify(response).substring(0, 500));
+      }
+      
+      // Apply suggestions to transactions
+      console.log('[Classification] Raw API response:', JSON.stringify(response).substring(0, 500));
+      const suggestions = response?.suggestions || [];
+      console.log('[Classification] Received suggestions:', suggestions.length, 'for', transactions.length, 'transactions');
+      console.log('[Classification] Categories loaded:', this.categoriesMap.size);
+      
+      // Count suggestions that have a non-null categoryId (actual matches)
+      const matchedSuggestions = suggestions.filter(s => s?.categoryId);
+      console.log('[Classification] Matched suggestions (with categoryId):', matchedSuggestions.length);
+      if (matchedSuggestions.length > 0) {
+        console.log('[Classification] Sample matched suggestion:', matchedSuggestions[0]);
+      }
+      
+      return transactions.map((t, index) => {
+        const suggestion = suggestions[index];
+        if (suggestion && suggestion.categoryId) {
+          const category = this.categoriesMap.get(suggestion.categoryId);
+          console.log(`[Classification] Transaction ${index}: categoryId=${suggestion.categoryId}, category found=${!!category}, confidence=${suggestion.confidence}, label=${suggestion.confidenceLabel}`);
+          return {
+            ...t,
+            suggestion: {
+              categoryId: suggestion.categoryId,
+              categoryName: category?.name || `Category ${suggestion.categoryId.substring(0, 8)}...`,
+              confidence: suggestion.confidence,
+              confidenceLabel: suggestion.confidenceLabel,
+              ruleId: suggestion.ruleId,
+            } as ClassificationSuggestionInfo,
+            // Pre-fill selected category with the suggestion (user can modify later)
+            selectedCategoryId: suggestion.categoryId,
+            selectedCategoryName: category?.name,
+          };
+        }
+        return t;
+      });
+    } catch (error) {
+      // Classification failures are non-blocking - import can proceed without suggestions
+      // Log detailed error for debugging purposes
+      console.warn('Auto-classification unavailable:', error instanceof Error ? error.message : error);
+      // Return transactions without suggestions if classification fails
+      return transactions;
+    }
+  }
+
+  /**
+   * Load categories and cache them.
+   * @param forceReload Force reload even if already cached
+   */
+  async loadCategories(forceReload: boolean = false): Promise<void> {
+    if (this.categoriesMap.size > 0 && !forceReload) {
+      console.log('[Classification] Categories already cached:', this.categoriesMap.size);
+      return; // Already loaded
+    }
+
+    try {
+      console.log('[Classification] Loading categories from API...');
+      const response = await this.categoriesService.getAllCategories$Response();
+      let categories = response.body;
+      // Handle Blob response (can happen with some ng-openapi-gen configurations)
+      if (categories instanceof Blob) {
+        const text = await categories.text();
+        categories = JSON.parse(text);
+      }
+      this.categoriesMap.clear();
+      const categoriesArray = Array.isArray(categories) ? categories : [];
+      for (const cat of categoriesArray) {
+        if (cat.id) {
+          this.categoriesMap.set(cat.id, cat);
+        }
+      }
+      console.log('[Classification] Categories loaded:', this.categoriesMap.size, 'categories');
+      if (this.categoriesMap.size > 0) {
+        console.log('[Classification] Sample category IDs:', Array.from(this.categoriesMap.keys()).slice(0, 3));
+      }
+    } catch (error) {
+      // Category loading failures are non-blocking - suggestions will show IDs instead of names
+      console.warn('Failed to load categories for name display:', error instanceof Error ? error.message : error);
+    }
   }
 
   /**
@@ -189,6 +382,8 @@ export class ImportTransactionsService {
       txDate: this.formatDate(t.importedDate),
       type: t.type,
       amountCents: t.amountCents,
+      // Use selected category (may have been modified by user, or pre-filled from suggestion)
+      categoryId: t.selectedCategoryId || undefined,
       merchant: t.counterparty || undefined,
       note: t.description || undefined,
       counterpartyIban: t.iban || undefined,
@@ -206,6 +401,47 @@ export class ImportTransactionsService {
   }
 
   /**
+   * Update the selected category for a transaction.
+   * @param transactionIndex Index of the transaction in the parsed list
+   * @param categoryId Category ID to assign
+   * @param categoryName Category name for display
+   */
+  updateTransactionCategory(transactionIndex: number, categoryId: string | null, categoryName: string | null): void {
+    this._state.update((s) => {
+      if (!s.parseResult) return s;
+
+      const updatedTransactions = s.parseResult.transactions.map((t, idx) => {
+        if (idx === transactionIndex) {
+          return {
+            ...t,
+            selectedCategoryId: categoryId || undefined,
+            selectedCategoryName: categoryName || undefined,
+          };
+        }
+        return t;
+      });
+
+      const updatedParseResult = {
+        ...s.parseResult,
+        transactions: updatedTransactions,
+      };
+
+      return {
+        ...s,
+        parseResult: updatedParseResult,
+        transactionsToImport: updatedTransactions.filter((t) => t.status !== 'ERROR'),
+      };
+    });
+  }
+
+  /**
+   * Get all available categories (for dropdown).
+   */
+  getCategories(): CategoryResponse[] {
+    return Array.from(this.categoriesMap.values());
+  }
+
+  /**
    * Get statistics about the parsed transactions.
    */
   getParseStats(): {
@@ -214,6 +450,10 @@ export class ImportTransactionsService {
     warnings: number;
     errors: number;
     duplicates: number;
+    categorized: number;
+    highConfidence: number;
+    mediumConfidence: number;
+    lowConfidence: number;
   } {
     const state = this._state();
     const transactions = state.parseResult?.transactions || [];
@@ -227,12 +467,28 @@ export class ImportTransactionsService {
       return existingKeys.has(key);
     }).length;
 
+    // Classification statistics
+    const categorized = transactions.filter((t) => t.suggestion?.categoryId).length;
+    const highConfidence = transactions.filter(
+      (t) => t.suggestion?.confidenceLabel === 'HIGH'
+    ).length;
+    const mediumConfidence = transactions.filter(
+      (t) => t.suggestion?.confidenceLabel === 'MEDIUM'
+    ).length;
+    const lowConfidence = transactions.filter(
+      (t) => t.suggestion?.confidenceLabel === 'LOW'
+    ).length;
+
     return {
       total: transactions.length,
       ok,
       warnings,
       errors,
       duplicates,
+      categorized,
+      highConfidence,
+      mediumConfidence,
+      lowConfidence,
     };
   }
 

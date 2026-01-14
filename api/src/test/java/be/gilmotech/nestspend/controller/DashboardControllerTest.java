@@ -10,6 +10,7 @@ import be.gilmotech.nestspend.domain.enums.TransactionType;
 import be.gilmotech.nestspend.domain.enums.UserRole;
 import be.gilmotech.nestspend.domain.repository.AccountRepository;
 import be.gilmotech.nestspend.domain.repository.CategoryRepository;
+import be.gilmotech.nestspend.domain.repository.ClassificationRuleRepository;
 import be.gilmotech.nestspend.domain.repository.HouseholdRepository;
 import be.gilmotech.nestspend.domain.repository.TransactionRepository;
 import be.gilmotech.nestspend.domain.repository.UserRepository;
@@ -55,11 +56,15 @@ class DashboardControllerTest {
     private TransactionRepository transactionRepository;
 
     @Autowired
+    private ClassificationRuleRepository classificationRuleRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void setUp() {
         transactionRepository.deleteAll();
+        classificationRuleRepository.deleteAll();
         categoryRepository.deleteAll();
         accountRepository.deleteAll();
         userRepository.deleteAll();

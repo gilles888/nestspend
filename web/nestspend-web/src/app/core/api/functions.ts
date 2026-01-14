@@ -15,6 +15,18 @@ export type { ImportTransactions$Params as ImportTransactions$Params } from './f
 export { importTransactions as importTransactions } from './fn/transactions/import-transactions';
 export type { CheckExisting$Params as CheckExisting$Params } from './fn/transactions/check-existing';
 export { checkExisting as checkExisting } from './fn/transactions/check-existing';
+export type { GetRuleById$Params as GetRuleById$Params } from './fn/classification-rules/get-rule-by-id';
+export { getRuleById as getRuleById } from './fn/classification-rules/get-rule-by-id';
+export type { UpdateRule$Params as UpdateRule$Params } from './fn/classification-rules/update-rule';
+export { updateRule as updateRule } from './fn/classification-rules/update-rule';
+export type { DeleteRule$Params as DeleteRule$Params } from './fn/classification-rules/delete-rule';
+export { deleteRule as deleteRule } from './fn/classification-rules/delete-rule';
+export type { GetAllRules$Params as GetAllRules$Params } from './fn/classification-rules/get-all-rules';
+export { getAllRules as getAllRules } from './fn/classification-rules/get-all-rules';
+export type { CreateRule$Params as CreateRule$Params } from './fn/classification-rules/create-rule';
+export { createRule as createRule } from './fn/classification-rules/create-rule';
+export type { InitializeDefaultRules$Params as InitializeDefaultRules$Params } from './fn/classification-rules/initialize-default-rules';
+export { initializeDefaultRules as initializeDefaultRules } from './fn/classification-rules/initialize-default-rules';
 export type { GetCategoryById$Params as GetCategoryById$Params } from './fn/categories/get-category-by-id';
 export { getCategoryById as getCategoryById } from './fn/categories/get-category-by-id';
 export type { UpdateCategory$Params as UpdateCategory$Params } from './fn/categories/update-category';
@@ -35,6 +47,8 @@ export type { GetAllAccounts$Params as GetAllAccounts$Params } from './fn/accoun
 export { getAllAccounts as getAllAccounts } from './fn/accounts/get-all-accounts';
 export type { CreateAccount$Params as CreateAccount$Params } from './fn/accounts/create-account';
 export { createAccount as createAccount } from './fn/accounts/create-account';
+export type { Suggest$Params as Suggest$Params } from './fn/classification/suggest';
+export { suggest as suggest } from './fn/classification/suggest';
 export type { Register$Params as Register$Params } from './fn/authentication/register';
 export { register as register } from './fn/authentication/register';
 export type { Login$Params as Login$Params } from './fn/authentication/login';

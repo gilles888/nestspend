@@ -1,0 +1,292 @@
+<div class="max-w-7xl mx-auto space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl lg:text-3xl font-bold text-text-main dark:text-dark-text-main">
+        {{ 'classificationRules.title' | translate }}
+      </h1>
+      <p class="text-text-muted dark:text-dark-text-muted mt-1">
+        {{ 'classificationRules.subtitle' | translate }}
+      </p>
+    </div>
+    <button
+      (click)="openAddDialog()"
+      class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-dark text-white font-medium rounded-xl shadow-elevated hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+    >
+      <i class="pi pi-plus"></i>
+      <span>{{ 'classificationRules.addRule' | translate }}</span>
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  @if (loading()) {
+    <div class="flex items-center justify-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+    </div>
+  }
+
+  <!-- Rules Content -->
+  @if (!loading()) {
+    @if (rules().length > 0) {
+      <!-- Rules Table -->
+      <div
+        class="bg-surface dark:bg-dark-surface rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 overflow-hidden"
+      >
+        <p-table
+          [value]="rules()"
+          [tableStyle]="{ 'min-width': '100%' }"
+          styleClass="p-datatable-striped"
+          [paginator]="true"
+          [rows]="10"
+          [rowsPerPageOptions]="[5, 10, 25, 50]"
+          [showCurrentPageReport]="true"
+          currentPageReportTemplate="{{ 'classificationRules.showing' | translate }} {first} {{ 'classificationRules.to' | translate }} {last} {{ 'classificationRules.of' | translate }} {totalRecords} {{ 'classificationRules.entries' | translate }}"
+        >
+          <ng-template #header>
+            <tr>
+              <th class="text-left" style="width: 60px">{{ 'classificationRules.enabled' | translate }}</th>
+              <th class="text-left">{{ 'classificationRules.field' | translate }}</th>
+              <th class="text-left">{{ 'classificationRules.matchType' | translate }}</th>
+              <th class="text-left">{{ 'classificationRules.pattern' | translate }}</th>
+              <th class="text-left">{{ 'classificationRules.category' | translate }}</th>
+              <th class="text-center" style="width: 100px">{{ 'classificationRules.confidence' | translate }}</th>
+              <th class="text-center" style="width: 80px">{{ 'classificationRules.priority' | translate }}</th>
+              <th class="text-center" style="width: 120px">{{ 'classificationRules.actions' | translate }}</th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-rule>
+            <tr [class.opacity-50]="!rule.enabled">
+              <td>
+                <i
+                  class="pi"
+                  [ngClass]="rule.enabled ? 'pi-check-circle text-green-500' : 'pi-times-circle text-gray-400'"
+                ></i>
+              </td>
+              <td>
+                <p-tag [value]="getFieldLabel(rule.field)" severity="info"></p-tag>
+              </td>
+              <td>
+                <p-tag [value]="getMatchTypeLabel(rule.matchType)" severity="secondary"></p-tag>
+              </td>
+              <td class="font-mono text-sm max-w-[200px] truncate" [pTooltip]="rule.pattern">
+                {{ rule.pattern }}
+              </td>
+              <td class="text-text-main dark:text-dark-text-main font-medium">
+                {{ rule.categoryName || '-' }}
+              </td>
+              <td class="text-center">
+                <p-tag
+                  [value]="getConfidenceLabel(rule.confidence)"
+                  [severity]="getConfidenceSeverity(rule.confidence)"
+                  [pTooltip]="rule.confidence + '%'"
+                ></p-tag>
+              </td>
+              <td class="text-center text-text-muted dark:text-dark-text-muted">
+                {{ rule.priority }}
+              </td>
+              <td class="text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <p-button
+                    icon="pi pi-pencil"
+                    [rounded]="true"
+                    [text]="true"
+                    severity="info"
+                    (onClick)="openEditDialog(rule)"
+                    pTooltip="{{ 'classificationRules.edit' | translate }}"
+                  ></p-button>
+                  <p-button
+                    icon="pi pi-trash"
+                    [rounded]="true"
+                    [text]="true"
+                    severity="danger"
+                    (onClick)="confirmDelete(rule)"
+                    pTooltip="{{ 'classificationRules.delete' | translate }}"
+                  ></p-button>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+    } @else {
+      <!-- Empty State -->
+      <div
+        class="bg-surface dark:bg-dark-surface rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 p-12 text-center"
+      >
+        <div
+          class="flex items-center justify-center w-20 h-20 mx-auto rounded-2xl bg-accent-soft mb-6"
+        >
+          <i class="pi pi-cog text-3xl text-accent"></i>
+        </div>
+        <h3 class="text-xl font-semibold text-text-main dark:text-dark-text-main mb-2">
+          {{ 'classificationRules.noRules' | translate }}
+        </h3>
+        <p class="text-text-muted dark:text-dark-text-muted mb-6 max-w-md mx-auto">
+          {{ 'classificationRules.noRulesDesc' | translate }}
+        </p>
+        <button
+          (click)="openAddDialog()"
+          class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-primary-dark text-white font-medium rounded-xl shadow-elevated hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+        >
+          <i class="pi pi-plus"></i>
+          <span>{{ 'classificationRules.addFirstRule' | translate }}</span>
+        </button>
+      </div>
+    }
+  }
+</div>
+
+<!-- Add/Edit Dialog -->
+<p-dialog
+  [header]="dialogMode() === 'add' ? ('classificationRules.addRule' | translate) : ('classificationRules.editRule' | translate)"
+  [modal]="true"
+  [visible]="dialogVisible()"
+  (visibleChange)="dialogVisible.set($event)"
+  [style]="{ width: '550px' }"
+  [breakpoints]="{ '960px': '75vw', '640px': '90vw' }"
+>
+  <form [formGroup]="ruleForm" (ngSubmit)="saveRule()">
+    <div class="space-y-4">
+      <!-- Field -->
+      <div>
+        <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">
+          {{ 'classificationRules.field' | translate }} *
+        </label>
+        <p-select
+          formControlName="field"
+          [options]="fieldOptions"
+          optionLabel="label"
+          optionValue="value"
+          styleClass="w-full"
+          placeholder="{{ 'classificationRules.selectField' | translate }}"
+        ></p-select>
+        <small class="text-text-muted dark:text-dark-text-muted">
+          {{ 'classificationRules.fieldHelp' | translate }}
+        </small>
+      </div>
+
+      <!-- Match Type -->
+      <div>
+        <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">
+          {{ 'classificationRules.matchType' | translate }} *
+        </label>
+        <p-select
+          formControlName="matchType"
+          [options]="matchTypeOptions"
+          optionLabel="label"
+          optionValue="value"
+          styleClass="w-full"
+          placeholder="{{ 'classificationRules.selectMatchType' | translate }}"
+        ></p-select>
+        <small class="text-text-muted dark:text-dark-text-muted">
+          {{ 'classificationRules.matchTypeHelp' | translate }}
+        </small>
+      </div>
+
+      <!-- Pattern -->
+      <div>
+        <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">
+          {{ 'classificationRules.pattern' | translate }} *
+        </label>
+        <input
+          type="text"
+          pInputText
+          formControlName="pattern"
+          class="w-full"
+          [placeholder]="'classificationRules.patternPlaceholder' | translate"
+        />
+        @if (ruleForm.get('pattern')?.invalid && ruleForm.get('pattern')?.touched) {
+          <small class="text-danger">{{ 'classificationRules.patternRequired' | translate }}</small>
+        }
+        <small class="text-text-muted dark:text-dark-text-muted block mt-1">
+          {{ 'classificationRules.patternHelp' | translate }}
+        </small>
+      </div>
+
+      <!-- Category -->
+      <div>
+        <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">
+          {{ 'classificationRules.category' | translate }} *
+        </label>
+        <p-select
+          formControlName="categoryId"
+          [options]="getCategoryOptions()"
+          optionLabel="label"
+          optionValue="value"
+          styleClass="w-full"
+          [filter]="true"
+          filterBy="label"
+          placeholder="{{ 'classificationRules.selectCategory' | translate }}"
+        ></p-select>
+        @if (ruleForm.get('categoryId')?.invalid && ruleForm.get('categoryId')?.touched) {
+          <small class="text-danger">{{ 'classificationRules.categoryRequired' | translate }}</small>
+        }
+      </div>
+
+      <!-- Priority & Confidence Row -->
+      <div class="grid grid-cols-2 gap-4">
+        <!-- Priority -->
+        <div>
+          <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">
+            {{ 'classificationRules.priority' | translate }}
+          </label>
+          <p-inputNumber
+            formControlName="priority"
+            [min]="0"
+            [max]="1000"
+            [showButtons]="true"
+            styleClass="w-full"
+          ></p-inputNumber>
+          <small class="text-text-muted dark:text-dark-text-muted">
+            {{ 'classificationRules.priorityHelp' | translate }}
+          </small>
+        </div>
+
+        <!-- Confidence -->
+        <div>
+          <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">
+            {{ 'classificationRules.confidence' | translate }} ({{ ruleForm.get('confidence')?.value }}%)
+          </label>
+          <p-inputNumber
+            formControlName="confidence"
+            [min]="0"
+            [max]="100"
+            [showButtons]="true"
+            suffix="%"
+            styleClass="w-full"
+          ></p-inputNumber>
+          <small class="text-text-muted dark:text-dark-text-muted">
+            {{ 'classificationRules.confidenceHelp' | translate }}
+          </small>
+        </div>
+      </div>
+
+      <!-- Enabled -->
+      <div class="flex items-center gap-3 pt-2">
+        <p-checkbox formControlName="enabled" [binary]="true" inputId="enabled"></p-checkbox>
+        <label for="enabled" class="text-text-main dark:text-dark-text-main cursor-pointer">
+          {{ 'classificationRules.enabledLabel' | translate }}
+        </label>
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-3 mt-6">
+      <p-button
+        label="{{ 'classificationRules.cancel' | translate }}"
+        severity="secondary"
+        (onClick)="closeDialog()"
+      ></p-button>
+      <p-button
+        [label]="dialogMode() === 'add' ? ('classificationRules.create' | translate) : ('classificationRules.save' | translate)"
+        type="submit"
+        [disabled]="ruleForm.invalid"
+      ></p-button>
+    </div>
+  </form>
+</p-dialog>
+
+<!-- Confirm Dialog -->
+<p-confirmDialog></p-confirmDialog>
+
+<!-- Toast -->
+<p-toast></p-toast>
