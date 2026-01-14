@@ -211,13 +211,21 @@ export class ImportTransactionsService {
       })));
       
       // Call classification API
-      const response = await this.classificationService.suggest({
+      let response = await this.classificationService.suggest({
         body: { transactions: transactionsToClassify },
       });
 
+      // Handle Blob response (can happen with some ng-openapi-gen configurations)
+      if (response instanceof Blob) {
+        console.log('[Classification] Response is a Blob, parsing as JSON...');
+        const text = await response.text();
+        response = JSON.parse(text);
+        console.log('[Classification] Parsed response:', JSON.stringify(response).substring(0, 500));
+      }
+      
       // Apply suggestions to transactions
       console.log('[Classification] Raw API response:', JSON.stringify(response).substring(0, 500));
-      const suggestions = response.suggestions || [];
+      const suggestions = response?.suggestions || [];
       console.log('[Classification] Received suggestions:', suggestions.length, 'for', transactions.length, 'transactions');
       console.log('[Classification] Categories loaded:', this.categoriesMap.size);
       
