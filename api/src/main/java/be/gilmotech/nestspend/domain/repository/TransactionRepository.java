@@ -119,4 +119,21 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
             @Param("fromDate") LocalDate fromDate,
             @Param("toDate") LocalDate toDate
     );
+
+    /**
+     * Get merchant-category statistics for learning algorithm.
+     * Groups transactions by normalized merchant (UPPER, trimmed) and category,
+     * returns counts for analysis.
+     *
+     * @param householdId the household ID
+     * @return list of Object arrays [normalizedMerchant, categoryId, categoryName, count]
+     */
+    @Query("SELECT UPPER(TRIM(t.merchant)), t.category.id, t.category.name, COUNT(t) " +
+           "FROM Transaction t " +
+           "WHERE t.household.id = :householdId " +
+           "AND t.merchant IS NOT NULL " +
+           "AND TRIM(t.merchant) <> '' " +
+           "GROUP BY UPPER(TRIM(t.merchant)), t.category.id, t.category.name " +
+           "ORDER BY UPPER(TRIM(t.merchant)), COUNT(t) DESC")
+    List<Object[]> getMerchantCategoryStats(@Param("householdId") UUID householdId);
 }

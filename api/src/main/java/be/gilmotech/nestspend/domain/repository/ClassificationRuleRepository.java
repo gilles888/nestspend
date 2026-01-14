@@ -49,4 +49,21 @@ public interface ClassificationRuleRepository extends JpaRepository<Classificati
             String pattern,
             be.gilmotech.nestspend.domain.enums.RuleField field
     );
+
+    /**
+     * Find an AUTO rule by pattern and field in the household.
+     * Used for updating existing AUTO rules during learning.
+     *
+     * @param householdId the household ID
+     * @param pattern     the pattern
+     * @param field       the field
+     * @param source      the rule source
+     * @return optional classification rule
+     */
+    Optional<ClassificationRule> findByHouseholdIdAndPatternIgnoreCaseAndFieldAndSource(
+            UUID householdId,
+            String pattern,
+            be.gilmotech.nestspend.domain.enums.RuleField field,
+            be.gilmotech.nestspend.domain.enums.RuleSource source
+    );
 }

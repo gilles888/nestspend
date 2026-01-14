@@ -1,9 +1,6 @@
 package be.gilmotech.nestspend.controller;
 
-import be.gilmotech.nestspend.domain.entity.Category;
-import be.gilmotech.nestspend.domain.entity.ClassificationRule;
-import be.gilmotech.nestspend.domain.entity.Household;
-import be.gilmotech.nestspend.domain.entity.User;
+import be.gilmotech.nestspend.domain.entity.*;
 import be.gilmotech.nestspend.domain.enums.MatchType;
 import be.gilmotech.nestspend.domain.enums.RuleField;
 import be.gilmotech.nestspend.domain.enums.RuleSource;
@@ -19,6 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -540,5 +538,305 @@ class ClassificationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isBadRequest());
+    }
+
+    // ==================== Learn Endpoint Tests ====================
+
+    private Account createAccount(Household household, String name) {
+        return accountRepository.save(Account.builder()
+                .household(household)
+                .name(name)
+                .type(be.gilmotech.nestspend.domain.enums.AccountType.BANK)
+                .build());
+    }
+
+    private Transaction createTransaction(Household household, Account account, Category category, 
+            String merchant, long amountCents) {
+        return transactionRepository.save(Transaction.builder()
+                .household(household)
+                .account(account)
+                .category(category)
+                .merchant(merchant)
+                .amountCents(amountCents)
+                .type(be.gilmotech.nestspend.domain.enums.TransactionType.EXPENSE)
+                .txDate(java.time.LocalDate.now())
+                .build());
+    }
+
+    @Test
+    void learn_withoutToken_shouldReturn401() throws Exception {
+        mockMvc.perform(post("/api/classification/learn")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void learn_withNoTransactions_shouldReturnEmptyResult() throws Exception {
+        Household household = createHousehold("Test Household");
+        createUser(household, "user@example.com", "password123");
+        createCategory(household, "Alimentation");
+
+        String token = getTokenForUser("user@example.com", "password123");
+
+        mockMvc.perform(post("/api/classification/learn")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rulesCreated").value(0))
+                .andExpect(jsonPath("$.rulesUpdated").value(0))
+                .andExpect(jsonPath("$.merchantsIgnored").value(0))
+                .andExpect(jsonPath("$.transactionsAnalyzed").value(0));
+    }
+
+    @Test
+    void learn_withStableMerchant_shouldCreateAutoRule() throws Exception {
+        Household household = createHousehold("Test Household");
+        createUser(household, "user@example.com", "password123");
+        Category foodCategory = createCategory(household, "Alimentation");
+        Account account = createAccount(household, "Main Account");
+
+        // Create 5 transactions with the same merchant and category (100% ratio)
+        for (int i = 0; i < 5; i++) {
+            createTransaction(household, account, foodCategory, "DELHAIZE CITY", 2500L + i * 100);
+        }
+
+        String token = getTokenForUser("user@example.com", "password123");
+
+        mockMvc.perform(post("/api/classification/learn")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rulesCreated").value(1))
+                .andExpect(jsonPath("$.rulesUpdated").value(0))
+                .andExpect(jsonPath("$.transactionsAnalyzed").value(5))
+                .andExpect(jsonPath("$.createdRules", hasSize(1)))
+                .andExpect(jsonPath("$.createdRules[0].pattern").value("DELHAIZE CITY"))
+                .andExpect(jsonPath("$.createdRules[0].categoryName").value("Alimentation"))
+                .andExpect(jsonPath("$.createdRules[0].confidence").value(100))
+                .andExpect(jsonPath("$.createdRules[0].transactionCount").value(5));
+
+        // Verify the rule was created
+        var rules = ruleRepository.findByHouseholdId(household.getId());
+        assertThat(rules, hasSize(1));
+        assertThat(rules.get(0).getSource(), is(RuleSource.AUTO));
+        assertThat(rules.get(0).getPattern(), is("DELHAIZE CITY"));
+    }
+
+    @Test
+    void learn_withUnstableMerchant_shouldNotCreateRule() throws Exception {
+        Household household = createHousehold("Test Household");
+        createUser(household, "user@example.com", "password123");
+        Category foodCategory = createCategory(household, "Alimentation");
+        Category transportCategory = createCategory(household, "Transport");
+        Account account = createAccount(household, "Main Account");
+
+        // Create transactions where no category has 85%+ ratio
+        // 3 food + 3 transport = 50% each
+        for (int i = 0; i < 3; i++) {
+            createTransaction(household, account, foodCategory, "GENERIC SHOP", 2500L);
+            createTransaction(household, account, transportCategory, "GENERIC SHOP", 2500L);
+        }
+
+        String token = getTokenForUser("user@example.com", "password123");
+
+        mockMvc.perform(post("/api/classification/learn")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rulesCreated").value(0))
+                .andExpect(jsonPath("$.merchantsIgnored").value(1));
+    }
+
+    @Test
+    void learn_withInsufficientTransactions_shouldNotCreateRule() throws Exception {
+        Household household = createHousehold("Test Household");
+        createUser(household, "user@example.com", "password123");
+        Category foodCategory = createCategory(household, "Alimentation");
+        Account account = createAccount(household, "Main Account");
+
+        // Create only 4 transactions (below threshold of 5)
+        for (int i = 0; i < 4; i++) {
+            createTransaction(household, account, foodCategory, "RARE MERCHANT", 2500L);
+        }
+
+        String token = getTokenForUser("user@example.com", "password123");
+
+        mockMvc.perform(post("/api/classification/learn")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rulesCreated").value(0))
+                .andExpect(jsonPath("$.merchantsIgnored").value(1));
+    }
+
+    @Test
+    void learn_shouldNotOverrideUserRules() throws Exception {
+        Household household = createHousehold("Test Household");
+        createUser(household, "user@example.com", "password123");
+        Category foodCategory = createCategory(household, "Alimentation");
+        Category transportCategory = createCategory(household, "Transport");
+        Account account = createAccount(household, "Main Account");
+
+        // Create a USER rule for "DELHAIZE CITY" pointing to Transport
+        createRule(household, transportCategory, RuleField.MERCHANT, MatchType.CONTAINS, 
+                "DELHAIZE CITY", 100, 80);
+
+        // Create 5 transactions with DELHAIZE CITY categorized as Food
+        for (int i = 0; i < 5; i++) {
+            createTransaction(household, account, foodCategory, "DELHAIZE CITY", 2500L);
+        }
+
+        String token = getTokenForUser("user@example.com", "password123");
+
+        mockMvc.perform(post("/api/classification/learn")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rulesCreated").value(0))
+                .andExpect(jsonPath("$.merchantsIgnored").value(1));
+
+        // Verify the USER rule was not modified
+        var rules = ruleRepository.findByHouseholdId(household.getId());
+        assertThat(rules, hasSize(1));
+        assertThat(rules.get(0).getSource(), is(RuleSource.USER));
+        // Verify category by ID since we can't access lazy-loaded properties outside transaction
+        assertThat(rules.get(0).getCategory().getId(), is(transportCategory.getId()));
+    }
+
+    @Test
+    void learn_shouldUpdateExistingAutoRule() throws Exception {
+        Household household = createHousehold("Test Household");
+        createUser(household, "user@example.com", "password123");
+        Category foodCategory = createCategory(household, "Alimentation");
+        Category transportCategory = createCategory(household, "Transport");
+        Account account = createAccount(household, "Main Account");
+
+        // Create an existing AUTO rule pointing to Transport
+        ruleRepository.save(ClassificationRule.builder()
+                .household(household)
+                .category(transportCategory)
+                .field(RuleField.MERCHANT)
+                .matchType(MatchType.CONTAINS)
+                .pattern("DELHAIZE CITY")
+                .enabled(true)
+                .priority(50)
+                .confidence(85)
+                .source(RuleSource.AUTO)
+                .build());
+
+        // Create 5 transactions with DELHAIZE CITY categorized as Food
+        for (int i = 0; i < 5; i++) {
+            createTransaction(household, account, foodCategory, "DELHAIZE CITY", 2500L);
+        }
+
+        String token = getTokenForUser("user@example.com", "password123");
+
+        mockMvc.perform(post("/api/classification/learn")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rulesCreated").value(0))
+                .andExpect(jsonPath("$.rulesUpdated").value(1))
+                .andExpect(jsonPath("$.updatedRules", hasSize(1)))
+                .andExpect(jsonPath("$.updatedRules[0].categoryName").value("Alimentation"));
+
+        // Verify the AUTO rule was updated to Food (by category ID)
+        var rules = ruleRepository.findByHouseholdId(household.getId());
+        assertThat(rules, hasSize(1));
+        assertThat(rules.get(0).getSource(), is(RuleSource.AUTO));
+        assertThat(rules.get(0).getCategory().getId(), is(foodCategory.getId()));
+    }
+
+    @Test
+    void learn_withMixedCategoriesStable_shouldCreateRule() throws Exception {
+        Household household = createHousehold("Test Household");
+        createUser(household, "user@example.com", "password123");
+        Category foodCategory = createCategory(household, "Alimentation");
+        Category transportCategory = createCategory(household, "Transport");
+        Account account = createAccount(household, "Main Account");
+
+        // Create 6 food + 1 transport = 85.7% ratio (just above threshold)
+        for (int i = 0; i < 6; i++) {
+            createTransaction(household, account, foodCategory, "MOSTLY FOOD", 2500L);
+        }
+        createTransaction(household, account, transportCategory, "MOSTLY FOOD", 2500L);
+
+        String token = getTokenForUser("user@example.com", "password123");
+
+        mockMvc.perform(post("/api/classification/learn")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rulesCreated").value(1))
+                .andExpect(jsonPath("$.createdRules[0].categoryName").value("Alimentation"))
+                .andExpect(jsonPath("$.createdRules[0].confidence").value(86)); // 6/7 = 85.7% rounded
+    }
+
+    @Test
+    void learn_multipleMerchants_shouldCreateMultipleRules() throws Exception {
+        Household household = createHousehold("Test Household");
+        createUser(household, "user@example.com", "password123");
+        Category foodCategory = createCategory(household, "Alimentation");
+        Category transportCategory = createCategory(household, "Transport");
+        Account account = createAccount(household, "Main Account");
+
+        // Create stable transactions for 2 different merchants
+        for (int i = 0; i < 5; i++) {
+            createTransaction(household, account, foodCategory, "COLRUYT", 2500L);
+            createTransaction(household, account, transportCategory, "TOTAL ENERGIES", 5000L);
+        }
+
+        String token = getTokenForUser("user@example.com", "password123");
+
+        mockMvc.perform(post("/api/classification/learn")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rulesCreated").value(2))
+                .andExpect(jsonPath("$.transactionsAnalyzed").value(10));
+
+        // Verify both rules were created
+        var rules = ruleRepository.findByHouseholdId(household.getId());
+        assertThat(rules, hasSize(2));
+    }
+
+    @Test
+    void learn_rulesNotSharedBetweenHouseholds() throws Exception {
+        // Household 1 with transactions
+        Household household1 = createHousehold("Household 1");
+        createUser(household1, "user1@example.com", "password123");
+        Category foodCategory1 = createCategory(household1, "Alimentation");
+        Account account1 = createAccount(household1, "Account 1");
+
+        for (int i = 0; i < 5; i++) {
+            createTransaction(household1, account1, foodCategory1, "DELHAIZE", 2500L);
+        }
+
+        // Household 2 without transactions
+        Household household2 = createHousehold("Household 2");
+        createUser(household2, "user2@example.com", "password123");
+        createCategory(household2, "Alimentation");
+
+        // Learn from household 1
+        String token1 = getTokenForUser("user1@example.com", "password123");
+        mockMvc.perform(post("/api/classification/learn")
+                        .header("Authorization", "Bearer " + token1)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rulesCreated").value(1));
+
+        // Verify household 1 has the rule
+        assertThat(ruleRepository.findByHouseholdId(household1.getId()), hasSize(1));
+        
+        // Verify household 2 doesn't have any rules
+        assertThat(ruleRepository.findByHouseholdId(household2.getId()), hasSize(0));
+
+        // Learn from household 2 (should create no rules)
+        String token2 = getTokenForUser("user2@example.com", "password123");
+        mockMvc.perform(post("/api/classification/learn")
+                        .header("Authorization", "Bearer " + token2)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rulesCreated").value(0));
     }
 }

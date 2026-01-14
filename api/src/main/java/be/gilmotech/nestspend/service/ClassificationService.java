@@ -8,6 +8,7 @@ import be.gilmotech.nestspend.domain.enums.RuleSource;
 import be.gilmotech.nestspend.domain.repository.CategoryRepository;
 import be.gilmotech.nestspend.domain.repository.ClassificationRuleRepository;
 import be.gilmotech.nestspend.domain.repository.HouseholdRepository;
+import be.gilmotech.nestspend.domain.repository.TransactionRepository;
 import be.gilmotech.nestspend.dto.classification.*;
 import be.gilmotech.nestspend.exception.ResourceNotFoundException;
 import be.gilmotech.nestspend.security.CurrentUserService;
@@ -15,9 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.Normalizer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -28,6 +27,7 @@ import java.util.regex.PatternSyntaxException;
 public class ClassificationService {
 
     private final ClassificationRuleRepository ruleRepository;
+    private final TransactionRepository transactionRepository;
     private final CategoryRepository categoryRepository;
     private final HouseholdRepository householdRepository;
     private final CurrentUserService currentUserService;
@@ -41,6 +41,11 @@ public class ClassificationService {
     private static final int EXACT_MATCH_BONUS = 15;
     private static final int PATTERN_LENGTH_BONUS_THRESHOLD = 5;
     private static final int PATTERN_LENGTH_BONUS = 5;
+
+    // Learning algorithm thresholds
+    private static final double LEARNING_MIN_RATIO = 0.85; // 85% stability ratio
+    private static final int LEARNING_MIN_TRANSACTIONS = 5; // Minimum 5 transactions
+    private static final int LEARNING_AUTO_PRIORITY = 50; // Lower than USER rules (default 100)
 
     /**
      * Default classification rules for common merchants in Belgium/France.
@@ -504,10 +509,12 @@ public class ClassificationService {
                                String categoryName, int priority, int confidence) {}
 
     public ClassificationService(ClassificationRuleRepository ruleRepository,
+                                  TransactionRepository transactionRepository,
                                   CategoryRepository categoryRepository,
                                   HouseholdRepository householdRepository,
                                   CurrentUserService currentUserService) {
         this.ruleRepository = ruleRepository;
+        this.transactionRepository = transactionRepository;
         this.categoryRepository = categoryRepository;
         this.householdRepository = householdRepository;
         this.currentUserService = currentUserService;
@@ -848,6 +855,165 @@ public class ClassificationService {
             throw new IllegalArgumentException("Invalid regex pattern: " + e.getMessage());
         }
     }
+
+    // ==================== Auto-Learning Algorithm ====================
+
+    /**
+     * Learn classification rules from transaction history.
+     * Analyzes categorized transactions to identify stable merchant-category patterns
+     * and creates or updates AUTO rules based on the analysis.
+     * 
+     * Algorithm:
+     * 1. Group transactions by normalized merchant name
+     * 2. For each merchant, calculate the dominant category ratio
+     * 3. Create/update AUTO rules if ratio >= 85% and count >= 5 transactions
+     * 
+     * USER rules are never modified. AUTO rules have lower priority than USER rules.
+     *
+     * @return LearningResult containing statistics about created/updated rules
+     */
+    @Transactional
+    public LearningResult learnFromHistory() {
+        UUID householdId = currentUserService.getCurrentHouseholdId();
+        var household = householdRepository.findById(householdId)
+                .orElseThrow(() -> new ResourceNotFoundException("Household not found"));
+
+        // Get merchant-category statistics from transaction history
+        List<Object[]> stats = transactionRepository.getMerchantCategoryStats(householdId);
+        
+        // Build a map of categories by ID for quick lookup
+        Map<UUID, Category> categoryMap = new HashMap<>();
+        for (Category cat : categoryRepository.findByHouseholdId(householdId)) {
+            categoryMap.put(cat.getId(), cat);
+        }
+
+        // Group statistics by merchant
+        Map<String, List<MerchantCategoryStat>> merchantStats = new LinkedHashMap<>();
+        int totalTransactions = 0;
+        
+        for (Object[] row : stats) {
+            String merchant = (String) row[0];
+            UUID categoryId = (UUID) row[1];
+            String categoryName = (String) row[2];
+            long count = (Long) row[3];
+            
+            merchantStats.computeIfAbsent(merchant, k -> new ArrayList<>())
+                    .add(new MerchantCategoryStat(categoryId, categoryName, (int) count));
+            totalTransactions += count;
+        }
+
+        List<LearningResult.RuleDetail> createdRules = new ArrayList<>();
+        List<LearningResult.RuleDetail> updatedRules = new ArrayList<>();
+        int merchantsIgnored = 0;
+
+        // Analyze each merchant
+        for (Map.Entry<String, List<MerchantCategoryStat>> entry : merchantStats.entrySet()) {
+            String merchant = entry.getKey();
+            List<MerchantCategoryStat> categoryStats = entry.getValue();
+            
+            // Calculate total transactions for this merchant
+            int totalForMerchant = categoryStats.stream()
+                    .mapToInt(MerchantCategoryStat::count)
+                    .sum();
+            
+            // Check minimum transaction threshold
+            if (totalForMerchant < LEARNING_MIN_TRANSACTIONS) {
+                merchantsIgnored++;
+                continue;
+            }
+            
+            // Find the dominant category
+            MerchantCategoryStat dominant = categoryStats.get(0); // Already sorted by count DESC
+            double ratio = (double) dominant.count() / totalForMerchant;
+            
+            // Check minimum ratio threshold
+            if (ratio < LEARNING_MIN_RATIO) {
+                merchantsIgnored++;
+                continue;
+            }
+            
+            // Check if a USER rule already exists for this merchant
+            // USER rules should never be overwritten by AUTO learning
+            if (ruleRepository.existsByHouseholdIdAndPatternIgnoreCaseAndField(
+                    householdId, merchant, RuleField.MERCHANT)) {
+                // Check if it's a USER rule
+                Optional<ClassificationRule> existingRule = ruleRepository
+                        .findByHouseholdIdAndPatternIgnoreCaseAndFieldAndSource(
+                                householdId, merchant, RuleField.MERCHANT, RuleSource.USER);
+                if (existingRule.isPresent()) {
+                    // USER rule exists, skip this merchant
+                    merchantsIgnored++;
+                    continue;
+                }
+            }
+            
+            // Calculate confidence score (ratio * 100)
+            int confidence = (int) Math.round(ratio * 100);
+            
+            // Get the category entity
+            Category category = categoryMap.get(dominant.categoryId());
+            if (category == null) {
+                merchantsIgnored++;
+                continue;
+            }
+            
+            // Check if an AUTO rule already exists
+            Optional<ClassificationRule> existingAutoRule = ruleRepository
+                    .findByHouseholdIdAndPatternIgnoreCaseAndFieldAndSource(
+                            householdId, merchant, RuleField.MERCHANT, RuleSource.AUTO);
+            
+            if (existingAutoRule.isPresent()) {
+                // Update existing AUTO rule
+                ClassificationRule rule = existingAutoRule.get();
+                rule.setCategory(category);
+                rule.setConfidence(confidence);
+                ruleRepository.save(rule);
+                
+                updatedRules.add(new LearningResult.RuleDetail(
+                        merchant,
+                        dominant.categoryName(),
+                        confidence,
+                        totalForMerchant
+                ));
+            } else {
+                // Create new AUTO rule
+                ClassificationRule rule = ClassificationRule.builder()
+                        .household(household)
+                        .field(RuleField.MERCHANT)
+                        .matchType(MatchType.CONTAINS)
+                        .pattern(merchant)
+                        .category(category)
+                        .priority(LEARNING_AUTO_PRIORITY)
+                        .confidence(confidence)
+                        .enabled(true)
+                        .source(RuleSource.AUTO)
+                        .build();
+                
+                ruleRepository.save(rule);
+                
+                createdRules.add(new LearningResult.RuleDetail(
+                        merchant,
+                        dominant.categoryName(),
+                        confidence,
+                        totalForMerchant
+                ));
+            }
+        }
+
+        return new LearningResult(
+                createdRules.size(),
+                updatedRules.size(),
+                merchantsIgnored,
+                totalTransactions,
+                createdRules,
+                updatedRules
+        );
+    }
+
+    /**
+     * Record for internal use during learning algorithm.
+     */
+    private record MerchantCategoryStat(UUID categoryId, String categoryName, int count) {}
 
     // ==================== DTO Mapping ====================
 
