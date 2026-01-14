@@ -33,6 +33,11 @@ import java.util.stream.Collectors;
  * Data seeder for development environment.
  * Creates default user, accounts, and sample transactions.
  * Active only with the "dev" profile.
+ * 
+ * <p>WARNING: This class contains hardcoded development credentials.
+ * These are intentionally included for development/testing convenience.
+ * This seeder is ONLY active in the 'dev' profile and should NEVER be
+ * used in production environments.</p>
  */
 @Component
 @Profile("dev")
@@ -40,8 +45,10 @@ public class DevDataSeeder implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DevDataSeeder.class);
 
+    // Development credentials - intentionally hardcoded for dev/test convenience
+    // SECURITY NOTE: This seeder only runs with 'dev' profile
     private static final String DEFAULT_EMAIL = "gilmoreau@hotmail.com";
-    private static final String DEFAULT_PASSWORD = "Gilmo=270188";
+    private static final String DEFAULT_PASSWORD = "Gilmo=270188"; // NOSONAR - dev credentials
     private static final String DEFAULT_DISPLAY_NAME = "Gilles Moreau";
     private static final String DEFAULT_HOUSEHOLD_NAME = "Moreau Family";
 
@@ -110,7 +117,6 @@ public class DevDataSeeder implements CommandLineRunner {
                 .build();
         user = userRepository.save(user);
         log.info("Created user: {} ({})", user.getDisplayName(), user.getEmail());
-        log.info("  Password: {}", DEFAULT_PASSWORD);
 
         // Create bank accounts
         Account keytradeAccount = Account.builder()
@@ -139,9 +145,9 @@ public class DevDataSeeder implements CommandLineRunner {
 
         log.info("Development data seeding completed successfully!");
         log.info("======================================");
-        log.info("Default user credentials:");
+        log.info("DEV MODE - Default user credentials:");
         log.info("  Email: {}", DEFAULT_EMAIL);
-        log.info("  Password: {}", DEFAULT_PASSWORD);
+        log.info("  Password: See DevDataSeeder.DEFAULT_PASSWORD");
         log.info("======================================");
     }
 
