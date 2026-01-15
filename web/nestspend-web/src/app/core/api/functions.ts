@@ -15,6 +15,18 @@ export type { ImportTransactions$Params as ImportTransactions$Params } from './f
 export { importTransactions as importTransactions } from './fn/transactions/import-transactions';
 export type { CheckExisting$Params as CheckExisting$Params } from './fn/transactions/check-existing';
 export { checkExisting as checkExisting } from './fn/transactions/check-existing';
+export type { GetFutureEvent$Params as GetFutureEvent$Params } from './fn/future-events/get-future-event';
+export { getFutureEvent as getFutureEvent } from './fn/future-events/get-future-event';
+export type { UpdateFutureEvent$Params as UpdateFutureEvent$Params } from './fn/future-events/update-future-event';
+export { updateFutureEvent as updateFutureEvent } from './fn/future-events/update-future-event';
+export type { DeleteFutureEvent$Params as DeleteFutureEvent$Params } from './fn/future-events/delete-future-event';
+export { deleteFutureEvent as deleteFutureEvent } from './fn/future-events/delete-future-event';
+export type { GetAllFutureEvents$Params as GetAllFutureEvents$Params } from './fn/future-events/get-all-future-events';
+export { getAllFutureEvents as getAllFutureEvents } from './fn/future-events/get-all-future-events';
+export type { CreateFutureEvent$Params as CreateFutureEvent$Params } from './fn/future-events/create-future-event';
+export { createFutureEvent as createFutureEvent } from './fn/future-events/create-future-event';
+export type { GetProjections$Params as GetProjections$Params } from './fn/future-events/get-projections';
+export { getProjections as getProjections } from './fn/future-events/get-projections';
 export type { GetRuleById$Params as GetRuleById$Params } from './fn/classification-rules/get-rule-by-id';
 export { getRuleById as getRuleById } from './fn/classification-rules/get-rule-by-id';
 export type { UpdateRule$Params as UpdateRule$Params } from './fn/classification-rules/update-rule';
@@ -49,6 +61,8 @@ export type { CreateAccount$Params as CreateAccount$Params } from './fn/accounts
 export { createAccount as createAccount } from './fn/accounts/create-account';
 export type { Suggest$Params as Suggest$Params } from './fn/classification/suggest';
 export { suggest as suggest } from './fn/classification/suggest';
+export type { Learn$Params as Learn$Params } from './fn/classification/learn';
+export { learn as learn } from './fn/classification/learn';
 export type { Register$Params as Register$Params } from './fn/authentication/register';
 export { register as register } from './fn/authentication/register';
 export type { Login$Params as Login$Params } from './fn/authentication/login';
