@@ -47,10 +47,10 @@ public class DevDataSeeder implements CommandLineRunner {
 
     // Development credentials - intentionally hardcoded for dev/test convenience
     // SECURITY NOTE: This seeder only runs with 'dev' profile
-    private static final String DEFAULT_EMAIL = "gilmoreau@hotmail.com";
-    private static final String DEFAULT_PASSWORD = "Gilmo=270188"; // NOSONAR - dev credentials
-    private static final String DEFAULT_DISPLAY_NAME = "Gilles Moreau";
-    private static final String DEFAULT_HOUSEHOLD_NAME = "Moreau Family";
+    private static final String DEFAULT_EMAIL = "demo@nestspend.be";
+    private static final String DEFAULT_PASSWORD = "Password123"; // NOSONAR - dev credentials
+    private static final String DEFAULT_DISPLAY_NAME = "Demo User";
+    private static final String DEFAULT_HOUSEHOLD_NAME = "Demo Household";
 
     private final UserRepository userRepository;
     private final HouseholdRepository householdRepository;
