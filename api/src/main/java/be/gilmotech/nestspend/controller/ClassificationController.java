@@ -2,6 +2,7 @@ package be.gilmotech.nestspend.controller;
 
 import be.gilmotech.nestspend.dto.classification.ClassificationSuggestRequest;
 import be.gilmotech.nestspend.dto.classification.ClassificationSuggestResponse;
+import be.gilmotech.nestspend.dto.classification.LearningResult;
 import be.gilmotech.nestspend.service.ClassificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -38,5 +39,20 @@ public class ClassificationController {
     public ResponseEntity<ClassificationSuggestResponse> suggest(@Valid @RequestBody ClassificationSuggestRequest request) {
         ClassificationSuggestResponse response = classificationService.suggest(request);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/learn")
+    @Operation(summary = "Learn classification rules from history", 
+            description = "Analyzes transaction history to automatically generate or update classification rules. " +
+                    "Identifies stable merchant-category patterns (≥85% ratio, ≥5 transactions) and creates AUTO rules. " +
+                    "USER rules are never modified. AUTO rules have lower priority than USER rules.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully analyzed history and generated/updated rules"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token",
+                    content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<LearningResult> learn() {
+        LearningResult result = classificationService.learnFromHistory();
+        return ResponseEntity.ok(result);
     }
 }
