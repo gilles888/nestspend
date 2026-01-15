@@ -143,7 +143,8 @@ public class FutureEventService {
                 householdId, TransactionType.INCOME, monthStart, monthEnd);
         Long currentExpenses = transactionRepository.sumAmountByHouseholdAndTypeAndDateRange(
                 householdId, TransactionType.EXPENSE, monthStart, monthEnd);
-        Long initialBalance = currentIncome - currentExpenses;
+        // Handle potential null values (though COALESCE should prevent this)
+        Long initialBalance = (currentIncome != null ? currentIncome : 0L) - (currentExpenses != null ? currentExpenses : 0L);
 
         // Get active future events
         List<FutureEvent> futureEvents = futureEventRepository.findActiveEventsInRange(

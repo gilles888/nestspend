@@ -99,7 +99,10 @@ export class ProjectionsComponent implements OnInit {
     }
 
     const labels = data.dataPoints.map((dp) => {
-      const date = new Date(dp.date!);
+      if (!dp.date) {
+        return '';
+      }
+      const date = new Date(dp.date);
       return date.toLocaleDateString('default', { month: 'short', year: 'numeric' });
     });
 
@@ -269,16 +272,17 @@ export class ProjectionsComponent implements OnInit {
   }
 
   async saveEvent(): Promise<void> {
-    if (!this.isFormValid()) return;
+    if (!this.isFormValid() || !this.eventForm.startDate) return;
 
     this.submitting.set(true);
 
     try {
       const amountCents = Math.round(this.eventForm.amountCents * 100);
-      const startDate = this.eventForm.startDate!.toISOString().split('T')[0];
+      const startDate = this.eventForm.startDate.toISOString().split('T')[0];
       const endDate = this.eventForm.endDate ? this.eventForm.endDate.toISOString().split('T')[0] : undefined;
 
-      if (this.editingEvent()) {
+      const editingEventValue = this.editingEvent();
+      if (editingEventValue?.id) {
         const request: FutureEventUpdateRequest = {
           name: this.eventForm.name,
           amountCents,
@@ -288,7 +292,7 @@ export class ProjectionsComponent implements OnInit {
           endDate,
         };
         await this.futureEventsService.updateFutureEvent({
-          id: this.editingEvent()!.id!,
+          id: editingEventValue.id,
           body: request,
         });
         this.showSuccess('futureEvents.updateSuccess');
