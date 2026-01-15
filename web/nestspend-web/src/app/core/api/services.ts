@@ -10,3 +10,4 @@ export { AuthenticationService } from './services/authentication.service';
 export { UserService } from './services/user.service';
 export { HealthService } from './services/health.service';
 export { DashboardService } from './services/dashboard.service';
+export { FutureEventsService } from './services/future-events.service';

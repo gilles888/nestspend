@@ -17,6 +17,9 @@ export type { ClassificationSuggestRequest } from './models/classification-sugge
 export type { ClassificationSuggestResponse } from './models/classification-suggest-response';
 export type { CurrentUserResponse } from './models/current-user-response';
 export type { DashboardResponse } from './models/dashboard-response';
+export type { FutureEventCreateRequest } from './models/future-event-create-request';
+export type { FutureEventResponse } from './models/future-event-response';
+export type { FutureEventUpdateRequest } from './models/future-event-update-request';
 export type { ImportCheckRequest } from './models/import-check-request';
 export type { ImportCheckResponse } from './models/import-check-response';
 export type { ImportError } from './models/import-error';
@@ -24,6 +27,8 @@ export type { ImportTransactionItem } from './models/import-transaction-item';
 export type { ImportTransactionRequest } from './models/import-transaction-request';
 export type { ImportTransactionResponse } from './models/import-transaction-response';
 export type { LoginRequest } from './models/login-request';
+export type { ProjectionDataPoint } from './models/projection-data-point';
+export type { ProjectionResponse } from './models/projection-response';
 export type { RegisterRequest } from './models/register-request';
 export type { TransactionCreateRequest } from './models/transaction-create-request';
 export type { TransactionResponse } from './models/transaction-response';

@@ -71,27 +71,62 @@
       </div>
     </div>
 
-    <!-- Expenses by Category Table -->
+    <!-- Expenses by Category Section -->
     <div class="bg-surface dark:bg-dark-surface rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 overflow-hidden">
-      <div class="p-6 border-b border-border/50 dark:border-dark-border/50">
+      <div class="p-6 border-b border-border/50 dark:border-dark-border/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 class="text-lg font-semibold text-text-main dark:text-dark-text-main">{{ 'dashboard.expensesByCategory' | translate }}</h2>
+        <p-selectbutton
+          [options]="viewOptions"
+          [ngModel]="selectedView()"
+          (ngModelChange)="onViewChange($event)"
+          optionLabel="label"
+          optionValue="value"
+          styleClass="view-toggle"
+        >
+          <ng-template #item let-item>
+            <i [class]="item.icon" class="mr-2"></i>
+            <span>{{ item.label }}</span>
+          </ng-template>
+        </p-selectbutton>
       </div>
 
       @if (expensesByCategory().length > 0) {
-        <p-table [value]="expensesByCategory()" [tableStyle]="{ 'min-width': '100%' }" styleClass="p-datatable-striped">
-          <ng-template #header>
-            <tr>
-              <th class="text-left">{{ 'dashboard.category' | translate }}</th>
-              <th class="text-right">{{ 'dashboard.amount' | translate }}</th>
-            </tr>
-          </ng-template>
-          <ng-template #body let-expense>
-            <tr>
-              <td class="text-text-main dark:text-dark-text-main">{{ expense.categoryName }}</td>
-              <td class="text-right font-semibold text-danger">{{ formatCentsToAmount(expense.amountCents) | currency:'EUR' }}</td>
-            </tr>
-          </ng-template>
-        </p-table>
+        <!-- Table View -->
+        <div
+          class="transition-all duration-300 ease-in-out"
+          [class.hidden]="selectedView() !== 'table'"
+          [class.opacity-0]="selectedView() !== 'table'"
+          [class.opacity-100]="selectedView() === 'table'"
+        >
+          <p-table [value]="expensesByCategory()" [tableStyle]="{ 'min-width': '100%' }" styleClass="p-datatable-striped">
+            <ng-template #header>
+              <tr>
+                <th class="text-left">{{ 'dashboard.category' | translate }}</th>
+                <th class="text-right">{{ 'dashboard.amount' | translate }}</th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-expense>
+              <tr>
+                <td class="text-text-main dark:text-dark-text-main">{{ expense.categoryName }}</td>
+                <td class="text-right font-semibold text-danger">{{ formatCentsToAmount(expense.amountCents) | currency:'EUR' }}</td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+
+        <!-- Chart View -->
+        <div
+          class="p-6 transition-all duration-300 ease-in-out"
+          [class.hidden]="selectedView() !== 'chart'"
+          [class.opacity-0]="selectedView() !== 'chart'"
+          [class.opacity-100]="selectedView() === 'chart'"
+        >
+          @if (chartData()) {
+            <div class="chart-container" style="height: 350px;">
+              <p-chart type="doughnut" [data]="chartData()" [options]="chartOptions" [style]="{ height: '100%', width: '100%' }"></p-chart>
+            </div>
+          }
+        </div>
       } @else {
         <div class="p-8 text-center text-text-muted dark:text-dark-text-muted">
           <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-2xl bg-slate-100 dark:bg-slate-800 mb-4">

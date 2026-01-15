@@ -1,0 +1,18 @@
+:host {
+  display: block;
+}
+
+.chart-container {
+  position: relative;
+  
+  canvas {
+    max-width: 100%;
+  }
+}
+
+// Responsive table adjustments
+:host ::ng-deep {
+  .p-datatable-responsive-scroll > .p-datatable-wrapper {
+    overflow-x: auto;
+  }
+}

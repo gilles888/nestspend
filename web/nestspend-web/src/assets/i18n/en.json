@@ -1,6 +1,7 @@
 {
   "nav": {
     "dashboard": "Dashboard",
+    "projections": "Projections",
     "transactions": "Transactions",
     "categories": "Categories",
     "classificationRules": "Classification Rules",
@@ -80,7 +81,9 @@
     "quickActions": "Quick Actions",
     "addTransaction": "Add Transaction",
     "manageCategories": "Manage Categories",
-    "viewReports": "View Reports"
+    "viewReports": "View Reports",
+    "tableView": "Table",
+    "chartView": "Chart"
   },
   "transactions": {
     "title": "Transactions",
@@ -273,5 +276,57 @@
     "lowConfidence": "Low",
     "suggestedCategory": "Category",
     "confidenceScore": "Confidence: {{score}}%"
+  },
+  "projections": {
+    "title": "Budget Projections",
+    "subtitle": "Visualize your projected budget based on recurring events.",
+    "months": "Projection Period",
+    "monthsLabel": "months",
+    "initialBalance": "Initial Balance",
+    "finalBalance": "Projected Balance",
+    "projectedIncome": "Projected Income",
+    "projectedExpenses": "Projected Expenses",
+    "noData": "No projection data available. Add future events to see projections.",
+    "loadError": "Failed to load projections"
+  },
+  "futureEvents": {
+    "title": "Future Events",
+    "subtitle": "Manage your recurring income and expenses.",
+    "addEvent": "Add Event",
+    "editEvent": "Edit Event",
+    "noEvents": "No future events yet",
+    "noEventsDesc": "Add recurring events like subscriptions, insurance payments, or regular income to project your budget.",
+    "addFirstEvent": "Add Your First Event",
+    "name": "Name",
+    "namePlaceholder": "e.g., Netflix, Rent, Salary",
+    "nameRequired": "Event name is required (2-120 characters)",
+    "amount": "Amount",
+    "amountRequired": "Amount must be positive",
+    "type": "Type",
+    "selectType": "Select a type",
+    "income": "Income",
+    "expense": "Expense",
+    "periodicity": "Periodicity",
+    "selectPeriodicity": "Select periodicity",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "quarterly": "Quarterly",
+    "yearly": "Yearly",
+    "startDate": "Start Date",
+    "endDate": "End Date (optional)",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "save": "Save",
+    "create": "Create",
+    "confirmDeleteHeader": "Confirm Deletion",
+    "confirmDeleteMessage": "Are you sure you want to delete the event \"{{name}}\"?",
+    "createSuccess": "Event created successfully",
+    "updateSuccess": "Event updated successfully",
+    "deleteSuccess": "Event deleted successfully",
+    "saveError": "Failed to save event",
+    "deleteError": "Failed to delete event",
+    "loadError": "Failed to load events"
   }
 }
