@@ -1,3 +1,28 @@
 :host {
   display: block;
 }
+
+.chart-container {
+  position: relative;
+  
+  canvas {
+    max-width: 100%;
+  }
+}
+
+// View toggle styling
+::ng-deep .view-toggle {
+  .p-button {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    
+    &.p-highlight {
+      @apply bg-primary text-white;
+    }
+  }
+}
+
+// Smooth transition for view switching
+.hidden {
+  display: none !important;
+}

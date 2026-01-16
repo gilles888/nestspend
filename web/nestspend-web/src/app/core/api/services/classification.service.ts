@@ -10,6 +10,9 @@ import { ApiConfiguration } from '../api-configuration';
 import { StrictHttpResponse } from '../strict-http-response';
 
 import { ClassificationSuggestResponse } from '../models/classification-suggest-response';
+import { learn } from '../fn/classification/learn';
+import { Learn$Params } from '../fn/classification/learn';
+import { LearningResult } from '../models/learning-result';
 import { suggest } from '../fn/classification/suggest';
 import { Suggest$Params } from '../fn/classification/suggest';
 
@@ -54,6 +57,39 @@ export class ClassificationService extends BaseService {
   suggest(params: Suggest$Params, context?: HttpContext): Promise<ClassificationSuggestResponse> {
     const resp = this.suggest$Response(params, context);
     return resp.then((r: StrictHttpResponse<ClassificationSuggestResponse>): ClassificationSuggestResponse => r.body);
+  }
+
+  /** Path part for operation `learn()` */
+  static readonly LearnPath = '/api/classification/learn';
+
+  /**
+   * Learn classification rules from history.
+   *
+   * Analyzes transaction history to automatically generate or update classification rules. Identifies stable merchant-category patterns (≥85% ratio, ≥5 transactions) and creates AUTO rules. USER rules are never modified. AUTO rules have lower priority than USER rules.
+   *
+   * This method provides access to the full `HttpResponse`, allowing access to response headers.
+   * To access only the response body, use `learn()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  learn$Response(params?: Learn$Params, context?: HttpContext): Promise<StrictHttpResponse<LearningResult>> {
+    const obs = learn(this.http, this.rootUrl, params, context);
+    return firstValueFrom(obs);
+  }
+
+  /**
+   * Learn classification rules from history.
+   *
+   * Analyzes transaction history to automatically generate or update classification rules. Identifies stable merchant-category patterns (≥85% ratio, ≥5 transactions) and creates AUTO rules. USER rules are never modified. AUTO rules have lower priority than USER rules.
+   *
+   * This method provides access only to the response body.
+   * To access the full response (for headers, for example), `learn$Response()` instead.
+   *
+   * This method doesn't expect any request body.
+   */
+  learn(params?: Learn$Params, context?: HttpContext): Promise<LearningResult> {
+    const resp = this.learn$Response(params, context);
+    return resp.then((r: StrictHttpResponse<LearningResult>): LearningResult => r.body);
   }
 
 }

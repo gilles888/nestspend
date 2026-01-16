@@ -1,0 +1,282 @@
+<div class="max-w-7xl mx-auto space-y-8">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl lg:text-3xl font-bold text-text-main dark:text-dark-text-main">{{ 'projections.title' | translate }}</h1>
+      <p class="text-text-muted dark:text-dark-text-muted mt-1">{{ 'projections.subtitle' | translate }}</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <label class="text-sm font-medium text-text-muted dark:text-dark-text-muted">{{ 'projections.months' | translate }}</label>
+      <p-select
+        [options]="monthOptions"
+        [ngModel]="selectedMonths()"
+        (ngModelChange)="onMonthsChange($event)"
+        optionLabel="label"
+        optionValue="value"
+        styleClass="w-36"
+      ></p-select>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (loading()) {
+    <div class="flex items-center justify-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (errorMessage()) {
+    <div class="bg-red-100 dark:bg-red-900/30 border border-danger rounded-xl p-4 text-danger">
+      <i class="pi pi-exclamation-triangle mr-2"></i>
+      {{ errorMessage() | translate }}
+    </div>
+  }
+
+  <!-- Projections Content -->
+  @if (!loading()) {
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
+      <!-- Initial Balance -->
+      <div class="bg-surface dark:bg-dark-surface p-6 rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-primary">
+            <i class="pi pi-wallet text-xl"></i>
+          </div>
+        </div>
+        <p class="text-text-muted dark:text-dark-text-muted text-sm font-medium">{{ 'projections.initialBalance' | translate }}</p>
+        <p class="text-2xl font-bold text-text-main dark:text-dark-text-main mt-1">{{ formatCentsToAmount(projectionData()?.initialBalanceCents) | currency:'EUR' }}</p>
+      </div>
+
+      <!-- Final Balance -->
+      <div class="bg-gradient-to-br from-primary to-primary-dark p-6 rounded-2xl shadow-elevated dark:shadow-dark-elevated text-white">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-white/20">
+            <i class="pi pi-chart-line text-xl"></i>
+          </div>
+        </div>
+        <p class="text-white/80 text-sm font-medium">{{ 'projections.finalBalance' | translate }}</p>
+        <p class="text-2xl lg:text-3xl font-bold mt-1">{{ formatCentsToAmount(projectionData()?.finalBalanceCents) | currency:'EUR' }}</p>
+      </div>
+    </div>
+
+    <!-- Projection Chart -->
+    <div class="bg-surface dark:bg-dark-surface rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 overflow-hidden">
+      <div class="p-6 border-b border-border/50 dark:border-dark-border/50">
+        <h2 class="text-lg font-semibold text-text-main dark:text-dark-text-main">{{ 'projections.title' | translate }}</h2>
+      </div>
+      
+      <div class="p-6">
+        @if (chartData()) {
+          <div class="chart-container" style="height: 350px;">
+            <p-chart type="line" [data]="chartData()" [options]="chartOptions" [style]="{ height: '100%', width: '100%' }"></p-chart>
+          </div>
+        } @else {
+          <div class="text-center text-text-muted dark:text-dark-text-muted py-8">
+            <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-2xl bg-slate-100 dark:bg-slate-800 mb-4">
+              <i class="pi pi-chart-line text-2xl text-slate-400"></i>
+            </div>
+            <p>{{ 'projections.noData' | translate }}</p>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Future Events Section -->
+    <div class="bg-surface dark:bg-dark-surface rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 overflow-hidden">
+      <div class="p-6 border-b border-border/50 dark:border-dark-border/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-semibold text-text-main dark:text-dark-text-main">{{ 'futureEvents.title' | translate }}</h2>
+          <p class="text-sm text-text-muted dark:text-dark-text-muted mt-1">{{ 'futureEvents.subtitle' | translate }}</p>
+        </div>
+        <p-button
+          [label]="'futureEvents.addEvent' | translate"
+          icon="pi pi-plus"
+          (onClick)="openNewEventDialog()"
+          severity="primary"
+        ></p-button>
+      </div>
+
+      @if (eventsLoading()) {
+        <div class="flex items-center justify-center py-8">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      } @else if (futureEvents().length > 0) {
+        <p-table [value]="futureEvents()" [tableStyle]="{ 'min-width': '100%' }" styleClass="p-datatable-striped" responsiveLayout="scroll">
+          <ng-template #header>
+            <tr>
+              <th class="text-left">{{ 'futureEvents.name' | translate }}</th>
+              <th class="text-right">{{ 'futureEvents.amount' | translate }}</th>
+              <th class="text-center">{{ 'futureEvents.type' | translate }}</th>
+              <th class="text-center">{{ 'futureEvents.periodicity' | translate }}</th>
+              <th class="text-center">{{ 'futureEvents.startDate' | translate }}</th>
+              <th class="text-center">{{ 'futureEvents.endDate' | translate }}</th>
+              <th class="text-center">{{ 'futureEvents.actions' | translate }}</th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-event>
+            <tr>
+              <td class="text-text-main dark:text-dark-text-main font-medium">{{ event.name }}</td>
+              <td class="text-right font-semibold" [class.text-success]="event.type === 'INCOME'" [class.text-danger]="event.type === 'EXPENSE'">
+                {{ formatCentsToAmount(event.amountCents) | currency:'EUR' }}
+              </td>
+              <td class="text-center">
+                <span 
+                  class="px-2 py-1 rounded-full text-xs font-medium"
+                  [class.bg-emerald-100]="event.type === 'INCOME'"
+                  [class.text-success]="event.type === 'INCOME'"
+                  [class.bg-red-100]="event.type === 'EXPENSE'"
+                  [class.text-danger]="event.type === 'EXPENSE'"
+                >
+                  {{ getTypeLabel(event.type) }}
+                </span>
+              </td>
+              <td class="text-center text-text-muted dark:text-dark-text-muted">{{ getPeriodicityLabel(event.periodicity) }}</td>
+              <td class="text-center text-text-muted dark:text-dark-text-muted">{{ event.startDate | date:'shortDate' }}</td>
+              <td class="text-center text-text-muted dark:text-dark-text-muted">{{ event.endDate ? (event.endDate | date:'shortDate') : '-' }}</td>
+              <td class="text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <p-button
+                    icon="pi pi-pencil"
+                    [rounded]="true"
+                    [text]="true"
+                    severity="info"
+                    (onClick)="openEditEventDialog(event)"
+                    [pTooltip]="'futureEvents.edit' | translate"
+                  ></p-button>
+                  <p-button
+                    icon="pi pi-trash"
+                    [rounded]="true"
+                    [text]="true"
+                    severity="danger"
+                    (onClick)="confirmDeleteEvent(event)"
+                    [pTooltip]="'futureEvents.delete' | translate"
+                  ></p-button>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      } @else {
+        <div class="p-8 text-center text-text-muted dark:text-dark-text-muted">
+          <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-2xl bg-slate-100 dark:bg-slate-800 mb-4">
+            <i class="pi pi-calendar-plus text-2xl text-slate-400"></i>
+          </div>
+          <p class="font-medium text-text-main dark:text-dark-text-main mb-2">{{ 'futureEvents.noEvents' | translate }}</p>
+          <p class="text-sm mb-4">{{ 'futureEvents.noEventsDesc' | translate }}</p>
+          <p-button
+            [label]="'futureEvents.addFirstEvent' | translate"
+            icon="pi pi-plus"
+            (onClick)="openNewEventDialog()"
+          ></p-button>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- Event Dialog -->
+<p-dialog
+  [header]="editingEvent() ? ('futureEvents.editEvent' | translate) : ('futureEvents.addEvent' | translate)"
+  [(visible)]="eventDialogVisible"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: '500px' }"
+  (onHide)="closeEventDialog()"
+>
+  <div class="space-y-4">
+    <!-- Name -->
+    <div>
+      <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">{{ 'futureEvents.name' | translate }}</label>
+      <input
+        type="text"
+        pInputText
+        [(ngModel)]="eventForm.name"
+        [placeholder]="'futureEvents.namePlaceholder' | translate"
+        class="w-full"
+      />
+    </div>
+
+    <!-- Amount -->
+    <div>
+      <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">{{ 'futureEvents.amount' | translate }}</label>
+      <p-inputnumber
+        [(ngModel)]="eventForm.amountCents"
+        mode="currency"
+        currency="EUR"
+        locale="fr-BE"
+        [min]="0.01"
+        class="w-full"
+      ></p-inputnumber>
+    </div>
+
+    <!-- Type -->
+    <div>
+      <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">{{ 'futureEvents.type' | translate }}</label>
+      <p-select
+        [options]="typeOptions"
+        [(ngModel)]="eventForm.type"
+        optionLabel="label"
+        optionValue="value"
+        [placeholder]="'futureEvents.selectType' | translate"
+        styleClass="w-full"
+      ></p-select>
+    </div>
+
+    <!-- Periodicity -->
+    <div>
+      <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">{{ 'futureEvents.periodicity' | translate }}</label>
+      <p-select
+        [options]="periodicityOptions"
+        [(ngModel)]="eventForm.periodicity"
+        optionLabel="label"
+        optionValue="value"
+        [placeholder]="'futureEvents.selectPeriodicity' | translate"
+        styleClass="w-full"
+      ></p-select>
+    </div>
+
+    <!-- Start Date -->
+    <div>
+      <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">{{ 'futureEvents.startDate' | translate }}</label>
+      <p-datepicker
+        [(ngModel)]="eventForm.startDate"
+        dateFormat="dd/mm/yy"
+        [showIcon]="true"
+        styleClass="w-full"
+      ></p-datepicker>
+    </div>
+
+    <!-- End Date -->
+    <div>
+      <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">{{ 'futureEvents.endDate' | translate }}</label>
+      <p-datepicker
+        [(ngModel)]="eventForm.endDate"
+        dateFormat="dd/mm/yy"
+        [showIcon]="true"
+        styleClass="w-full"
+      ></p-datepicker>
+    </div>
+  </div>
+
+  <ng-template #footer>
+    <div class="flex justify-end gap-2">
+      <p-button
+        [label]="'futureEvents.cancel' | translate"
+        severity="secondary"
+        (onClick)="closeEventDialog()"
+      ></p-button>
+      <p-button
+        [label]="editingEvent() ? ('futureEvents.save' | translate) : ('futureEvents.create' | translate)"
+        severity="primary"
+        (onClick)="saveEvent()"
+        [loading]="submitting()"
+        [disabled]="!isFormValid()"
+      ></p-button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<p-confirmDialog></p-confirmDialog>
+<p-toast></p-toast>

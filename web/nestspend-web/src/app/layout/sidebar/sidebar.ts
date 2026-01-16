@@ -22,6 +22,7 @@ export class SidebarComponent {
 
   navItems: NavItem[] = [
     { labelKey: 'nav.dashboard', icon: 'pi pi-home', route: '/dashboard' },
+    { labelKey: 'nav.projections', icon: 'pi pi-chart-line', route: '/projections' },
     { labelKey: 'nav.transactions', icon: 'pi pi-list', route: '/transactions' },
     { labelKey: 'nav.categories', icon: 'pi pi-tags', route: '/categories' },
     { labelKey: 'nav.classificationRules', icon: 'pi pi-cog', route: '/classification-rules' },

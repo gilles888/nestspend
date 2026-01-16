@@ -1,6 +1,7 @@
 {
   "nav": {
     "dashboard": "Tableau de bord",
+    "projections": "Projections",
     "transactions": "Transactions",
     "categories": "Catégories",
     "classificationRules": "Règles de classification",
@@ -80,7 +81,9 @@
     "quickActions": "Actions rapides",
     "addTransaction": "Ajouter une transaction",
     "manageCategories": "Gérer les catégories",
-    "viewReports": "Voir les rapports"
+    "viewReports": "Voir les rapports",
+    "tableView": "Tableau",
+    "chartView": "Graphique"
   },
   "transactions": {
     "title": "Transactions",
@@ -273,5 +276,57 @@
     "lowConfidence": "Faible",
     "suggestedCategory": "Catégorie",
     "confidenceScore": "Confiance : {{score}}%"
+  },
+  "projections": {
+    "title": "Projections budgétaires",
+    "subtitle": "Visualisez votre budget projeté basé sur les événements récurrents.",
+    "months": "Période de projection",
+    "monthsLabel": "mois",
+    "initialBalance": "Solde initial",
+    "finalBalance": "Solde projeté",
+    "projectedIncome": "Revenus projetés",
+    "projectedExpenses": "Dépenses projetées",
+    "noData": "Aucune donnée de projection disponible. Ajoutez des événements futurs pour voir les projections.",
+    "loadError": "Échec du chargement des projections"
+  },
+  "futureEvents": {
+    "title": "Événements futurs",
+    "subtitle": "Gérez vos revenus et dépenses récurrents.",
+    "addEvent": "Ajouter un événement",
+    "editEvent": "Modifier l'événement",
+    "noEvents": "Aucun événement futur",
+    "noEventsDesc": "Ajoutez des événements récurrents comme des abonnements, paiements d'assurance ou revenus réguliers pour projeter votre budget.",
+    "addFirstEvent": "Ajouter votre premier événement",
+    "name": "Nom",
+    "namePlaceholder": "ex: Netflix, Loyer, Salaire",
+    "nameRequired": "Le nom de l'événement est requis (2-120 caractères)",
+    "amount": "Montant",
+    "amountRequired": "Le montant doit être positif",
+    "type": "Type",
+    "selectType": "Sélectionner un type",
+    "income": "Revenu",
+    "expense": "Dépense",
+    "periodicity": "Périodicité",
+    "selectPeriodicity": "Sélectionner la périodicité",
+    "weekly": "Hebdomadaire",
+    "monthly": "Mensuel",
+    "quarterly": "Trimestriel",
+    "yearly": "Annuel",
+    "startDate": "Date de début",
+    "endDate": "Date de fin (optionnel)",
+    "actions": "Actions",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "create": "Créer",
+    "confirmDeleteHeader": "Confirmer la suppression",
+    "confirmDeleteMessage": "Êtes-vous sûr de vouloir supprimer l'événement \"{{name}}\" ?",
+    "createSuccess": "Événement créé avec succès",
+    "updateSuccess": "Événement mis à jour avec succès",
+    "deleteSuccess": "Événement supprimé avec succès",
+    "saveError": "Échec de l'enregistrement de l'événement",
+    "deleteError": "Échec de la suppression de l'événement",
+    "loadError": "Échec du chargement des événements"
   }
 }
