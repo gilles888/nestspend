@@ -121,6 +121,31 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     );
 
     /**
+     * Somme des montants pour une catégorie spécifique, un type et une plage de dates.
+     * Utilisée pour le calcul des dépenses réelles dans le cadre du suivi budgétaire.
+     *
+     * @param householdId l'identifiant du foyer
+     * @param categoryId  l'identifiant de la catégorie
+     * @param type        le type de transaction (EXPENSE généralement)
+     * @param startDate   la date de début (inclusive)
+     * @param endDate     la date de fin (inclusive)
+     * @return somme des montants en centimes, ou 0 si aucune transaction
+     */
+    @Query("SELECT COALESCE(SUM(t.amountCents), 0) FROM Transaction t " +
+           "WHERE t.household.id = :householdId " +
+           "AND t.category.id = :categoryId " +
+           "AND t.type = :type " +
+           "AND t.txDate >= :startDate " +
+           "AND t.txDate <= :endDate")
+    Long sumAmountByHouseholdAndCategoryAndTypeAndDateRange(
+            @Param("householdId") UUID householdId,
+            @Param("categoryId") UUID categoryId,
+            @Param("type") TransactionType type,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
+    /**
      * Get merchant-category statistics for learning algorithm.
      * Groups transactions by normalized merchant (UPPER, trimmed) and category,
      * returns counts for analysis.

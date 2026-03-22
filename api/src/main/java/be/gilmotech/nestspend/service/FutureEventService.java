@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -64,7 +65,7 @@ public class FutureEventService {
     }
 
     /**
-     * Create a new future event.
+     * Crée un nouvel événement futur pour le foyer de l'utilisateur courant.
      */
     @Transactional
     public FutureEventResponse createFutureEvent(FutureEventCreateRequest request) {
@@ -72,12 +73,15 @@ public class FutureEventService {
         Household household = householdRepository.findById(householdId)
                 .orElseThrow(() -> new ResourceNotFoundException("Household not found"));
 
+        // Validation de la cohérence des dates
+        validerCoherenceDates(request.startDate(), request.endDate());
+
         FutureEvent event = FutureEvent.builder()
                 .household(household)
                 .name(request.name())
                 .amountCents(request.amountCents())
-                .type(TransactionType.valueOf(request.type()))
-                .periodicity(Periodicity.valueOf(request.periodicity()))
+                .type(parseTransactionType(request.type()))
+                .periodicity(parsePeriodicity(request.periodicity()))
                 .startDate(request.startDate())
                 .endDate(request.endDate())
                 .build();
@@ -87,7 +91,7 @@ public class FutureEventService {
     }
 
     /**
-     * Update an existing future event.
+     * Met à jour un événement futur existant.
      */
     @Transactional
     public FutureEventResponse updateFutureEvent(UUID id, FutureEventUpdateRequest request) {
@@ -95,10 +99,13 @@ public class FutureEventService {
         FutureEvent event = futureEventRepository.findByIdAndHouseholdId(id, householdId)
                 .orElseThrow(() -> new ResourceNotFoundException("Future event not found: " + id));
 
+        // Validation de la cohérence des dates
+        validerCoherenceDates(request.startDate(), request.endDate());
+
         event.setName(request.name());
         event.setAmountCents(request.amountCents());
-        event.setType(TransactionType.valueOf(request.type()));
-        event.setPeriodicity(Periodicity.valueOf(request.periodicity()));
+        event.setType(parseTransactionType(request.type()));
+        event.setPeriodicity(parsePeriodicity(request.periodicity()));
         event.setStartDate(request.startDate());
         event.setEndDate(request.endDate());
 
@@ -196,13 +203,15 @@ public class FutureEventService {
     }
 
     /**
-     * Count how many times an event occurs in a given month based on its periodicity.
+     * Compte le nombre d'occurrences d'un événement dans un mois donné selon sa périodicité.
+     * Pour la périodicité WEEKLY, on compte précisément le nombre de semaines dans le mois
+     * au lieu d'utiliser une approximation fixe de 4.
      */
     private long countOccurrencesInMonth(FutureEvent event, YearMonth month) {
         LocalDate monthStart = month.atDay(1);
         LocalDate monthEnd = month.atEndOfMonth();
 
-        // Check if event is active during this month
+        // Vérifie si l'événement est actif pendant ce mois
         if (event.getStartDate().isAfter(monthEnd)) {
             return 0;
         }
@@ -211,20 +220,64 @@ public class FutureEventService {
         }
 
         return switch (event.getPeriodicity()) {
-            case WEEKLY -> 4; // Approximation: 4 weeks per month
+            case WEEKLY -> {
+                // Calcul précis du nombre d'occurrences hebdomadaires dans le mois
+                // On prend le jour de la semaine de la date de départ comme référence
+                LocalDate effectiveStart = event.getStartDate().isBefore(monthStart)
+                        ? monthStart
+                        : event.getStartDate();
+                LocalDate effectiveEnd = event.getEndDate() != null && event.getEndDate().isBefore(monthEnd)
+                        ? event.getEndDate()
+                        : monthEnd;
+
+                // Nombre de jours dans l'intervalle effectif, divisé par 7 (arrondi supérieur)
+                long days = effectiveStart.until(effectiveEnd, ChronoUnit.DAYS) + 1;
+                yield (days + 6) / 7; // équivalent à ceil(days / 7)
+            }
             case MONTHLY -> 1;
             case QUARTERLY -> {
                 int eventMonth = event.getStartDate().getMonthValue();
                 int currentMonth = month.getMonthValue();
-                // Event occurs if (currentMonth - eventMonth) is divisible by 3
+                // L'événement se produit si (currentMonth - eventMonth) est divisible par 3
                 int diff = (currentMonth - eventMonth + 12) % 12;
                 yield (diff % 3 == 0) ? 1 : 0;
             }
             case YEARLY -> {
-                // Event occurs only in the same month as start date
+                // L'événement se produit uniquement dans le même mois que la date de début
                 yield (event.getStartDate().getMonthValue() == month.getMonthValue()) ? 1 : 0;
             }
         };
+    }
+
+    /**
+     * Valide que la date de fin est postérieure à la date de début si elle est fournie.
+     */
+    private void validerCoherenceDates(LocalDate startDate, LocalDate endDate) {
+        if (endDate != null && !endDate.isAfter(startDate)) {
+            throw new IllegalArgumentException("La date de fin doit être postérieure à la date de début");
+        }
+    }
+
+    /**
+     * Parse le type de transaction avec un message d'erreur explicite.
+     */
+    private TransactionType parseTransactionType(String type) {
+        try {
+            return TransactionType.valueOf(type);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Type de transaction invalide : " + type + ". Valeurs acceptées : INCOME, EXPENSE");
+        }
+    }
+
+    /**
+     * Parse la périodicité avec un message d'erreur explicite.
+     */
+    private Periodicity parsePeriodicity(String periodicity) {
+        try {
+            return Periodicity.valueOf(periodicity);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Périodicité invalide : " + periodicity + ". Valeurs acceptées : WEEKLY, MONTHLY, QUARTERLY, YEARLY");
+        }
     }
 
     private FutureEventResponse toResponse(FutureEvent event) {
