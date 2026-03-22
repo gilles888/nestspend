@@ -1,0 +1,106 @@
+# =============================================================================
+# Docker Compose - NestSpend
+# =============================================================================
+# Orchestration des services pour l'environnement de production local.
+#
+# Utilisation :
+#   Démarrer tous les services  : docker compose up -d
+#   Arrêter                     : docker compose down
+#   Arrêter et supprimer volumes: docker compose down -v
+#   Logs                        : docker compose logs -f
+#
+# Variables d'environnement requises (fichier .env à la racine) :
+#   POSTGRES_PASSWORD=<mot_de_passe_fort>
+#   JWT_SECRET=<clé_jwt_aléatoire_64_chars>
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Base de données PostgreSQL
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: nestspend-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: nestspend
+      POSTGRES_USER: nestspend
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?La variable POSTGRES_PASSWORD est requise}
+      # Optimisations de performance pour une instance légère
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=fr_BE.UTF-8 --lc-ctype=fr_BE.UTF-8"
+    volumes:
+      # Persistance des données PostgreSQL
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      # Accès local pour les outils de gestion (DBeaver, psql, etc.)
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nestspend -d nestspend"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - nestspend-network
+
+  # ---------------------------------------------------------------------------
+  # API Spring Boot
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: nestspend-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Activation du profil production
+      SPRING_PROFILES_ACTIVE: prod
+      # Connexion à PostgreSQL (nom du service Docker comme hostname)
+      POSTGRES_URL: jdbc:postgresql://postgres:5432/nestspend
+      POSTGRES_USER: nestspend
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?La variable POSTGRES_PASSWORD est requise}
+      # JWT - clé secrète obligatoire en production
+      JWT_SECRET: ${JWT_SECRET:?La variable JWT_SECRET est requise}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+      # Port du serveur
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+    networks:
+      - nestspend-network
+
+  # ---------------------------------------------------------------------------
+  # Frontend Angular (Nginx)
+  # ---------------------------------------------------------------------------
+  web:
+    build:
+      context: ./web/nestspend-web
+      dockerfile: Dockerfile
+    container_name: nestspend-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - nestspend-network
+
+# ---------------------------------------------------------------------------
+# Volumes persistants
+# ---------------------------------------------------------------------------
+volumes:
+  postgres_data:
+    name: nestspend-postgres-data
+
+# ---------------------------------------------------------------------------
+# Réseau interne
+# ---------------------------------------------------------------------------
+networks:
+  nestspend-network:
+    name: nestspend-network
+    driver: bridge
