@@ -175,10 +175,11 @@
   }
 </div>
 
-<!-- Event Dialog -->
+<!-- Dialogue de création/édition d'événement futur -->
 <p-dialog
   [header]="editingEvent() ? ('futureEvents.editEvent' | translate) : ('futureEvents.addEvent' | translate)"
-  [(visible)]="eventDialogVisible"
+  [visible]="eventDialogVisible()"
+  (visibleChange)="eventDialogVisible.set($event)"
   [modal]="true"
   [draggable]="false"
   [resizable]="false"

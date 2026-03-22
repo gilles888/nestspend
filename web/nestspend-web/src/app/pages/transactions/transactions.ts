@@ -131,10 +131,11 @@ export class TransactionsComponent implements OnInit {
       this.accounts.set(Array.isArray(accounts) ? accounts : []);
     } catch (error) {
       console.error('Error loading data:', error);
+      // Utilisation des traductions plutôt que de messages en dur
       this.messageService.add({
         severity: 'error',
-        summary: 'Error',
-        detail: 'Failed to load data',
+        summary: this.translateService.instant('common.error'),
+        detail: this.translateService.instant('transactions.loadError'),
       });
     } finally {
       this.loading.set(false);
@@ -181,10 +182,11 @@ export class TransactionsComponent implements OnInit {
       this.transactions.set(transactions);
     } catch (error) {
       console.error('Error applying filters:', error);
+      // Utilisation des traductions
       this.messageService.add({
         severity: 'error',
-        summary: 'Error',
-        detail: 'Failed to apply filters',
+        summary: this.translateService.instant('common.error'),
+        detail: this.translateService.instant('transactions.filterError'),
       });
     } finally {
       this.loading.set(false);
@@ -256,10 +258,11 @@ export class TransactionsComponent implements OnInit {
     try {
       if (this.dialogMode() === 'add') {
         await this.transactionsService.createTransaction({ body });
+        // Utilisation des traductions pour les messages de succès
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Transaction created successfully',
+          summary: this.translateService.instant('common.success'),
+          detail: this.translateService.instant('transactions.createSuccess'),
         });
       } else {
         const id = this.selectedTransaction()?.id;
@@ -267,8 +270,8 @@ export class TransactionsComponent implements OnInit {
           await this.transactionsService.updateTransaction({ id, body });
           this.messageService.add({
             severity: 'success',
-            summary: 'Success',
-            detail: 'Transaction updated successfully',
+            summary: this.translateService.instant('common.success'),
+            detail: this.translateService.instant('transactions.updateSuccess'),
           });
         }
       }
@@ -277,18 +280,20 @@ export class TransactionsComponent implements OnInit {
       await this.applyFilters();
     } catch (error) {
       console.error('Error saving transaction:', error);
+      // Utilisation des traductions pour les messages d'erreur
       this.messageService.add({
         severity: 'error',
-        summary: 'Error',
-        detail: 'Failed to save transaction',
+        summary: this.translateService.instant('common.error'),
+        detail: this.translateService.instant('transactions.saveError'),
       });
     }
   }
 
   confirmDelete(transaction: TransactionResponse): void {
+    // Utilisation des traductions pour la boîte de confirmation
     this.confirmationService.confirm({
-      message: 'Are you sure you want to delete this transaction?',
-      header: 'Confirm Deletion',
+      message: this.translateService.instant('transactions.confirmDeleteMessage'),
+      header: this.translateService.instant('transactions.confirmDeleteHeader'),
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => this.deleteTransaction(transaction),
@@ -301,8 +306,8 @@ export class TransactionsComponent implements OnInit {
         await this.transactionsService.deleteTransaction({ id: transaction.id });
         this.messageService.add({
           severity: 'success',
-          summary: 'Success',
-          detail: 'Transaction deleted successfully',
+          summary: this.translateService.instant('common.success'),
+          detail: this.translateService.instant('transactions.deleteSuccess'),
         });
         await this.applyFilters();
       }
@@ -310,8 +315,8 @@ export class TransactionsComponent implements OnInit {
       console.error('Error deleting transaction:', error);
       this.messageService.add({
         severity: 'error',
-        summary: 'Error',
-        detail: 'Failed to delete transaction',
+        summary: this.translateService.instant('common.error'),
+        detail: this.translateService.instant('transactions.deleteError'),
       });
     }
   }

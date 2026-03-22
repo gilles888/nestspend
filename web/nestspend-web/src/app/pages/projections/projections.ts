@@ -1,7 +1,8 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 
 import { TableModule } from 'primeng/table';
 import { ChartModule } from 'primeng/chart';
@@ -57,7 +58,9 @@ interface EventForm {
   templateUrl: './projections.html',
   styleUrl: './projections.scss',
 })
-export class ProjectionsComponent implements OnInit {
+export class ProjectionsComponent implements OnInit, OnDestroy {
+  // Sujet de destruction pour éviter les fuites mémoire sur les subscriptions
+  private readonly destroy$ = new Subject<void>();
   loading = signal(false);
   eventsLoading = signal(false);
   projectionData = signal<ProjectionResponse | null>(null);
@@ -181,7 +184,14 @@ export class ProjectionsComponent implements OnInit {
     this.loadFutureEvents();
   }
 
+  // Libère toutes les subscriptions lors de la destruction du composant
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
   private initOptions(): void {
+    // Utilisation de takeUntil pour éviter les fuites mémoire
     this.translateService
       .get([
         'projections.monthsLabel',
@@ -192,6 +202,7 @@ export class ProjectionsComponent implements OnInit {
         'futureEvents.quarterly',
         'futureEvents.yearly',
       ])
+      .pipe(takeUntil(this.destroy$))
       .subscribe((t) => {
         this.monthOptions = [
           { label: `1 ${t['projections.monthsLabel'] || 'month'}`, value: 1 },
@@ -321,8 +332,10 @@ export class ProjectionsComponent implements OnInit {
   }
 
   confirmDeleteEvent(event: FutureEventResponse): void {
+    // Utilisation de takeUntil pour éviter les fuites mémoire
     this.translateService
       .get(['futureEvents.confirmDeleteHeader', 'futureEvents.confirmDeleteMessage'], { name: event.name })
+      .pipe(takeUntil(this.destroy$))
       .subscribe((t) => {
         this.confirmationService.confirm({
           header: t['futureEvents.confirmDeleteHeader'],
@@ -381,22 +394,30 @@ export class ProjectionsComponent implements OnInit {
   }
 
   private showSuccess(key: string): void {
-    this.translateService.get(['common.success', key]).subscribe((t) => {
-      this.messageService.add({
-        severity: 'success',
-        summary: t['common.success'],
-        detail: t[key],
+    // Utilisation de takeUntil pour éviter les fuites mémoire
+    this.translateService
+      .get(['common.success', key])
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((t) => {
+        this.messageService.add({
+          severity: 'success',
+          summary: t['common.success'],
+          detail: t[key],
+        });
       });
-    });
   }
 
   private showError(key: string): void {
-    this.translateService.get(['common.error', key]).subscribe((t) => {
-      this.messageService.add({
-        severity: 'error',
-        summary: t['common.error'],
-        detail: t[key],
+    // Utilisation de takeUntil pour éviter les fuites mémoire
+    this.translateService
+      .get(['common.error', key])
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((t) => {
+        this.messageService.add({
+          severity: 'error',
+          summary: t['common.error'],
+          detail: t[key],
+        });
       });
-    });
   }
 }

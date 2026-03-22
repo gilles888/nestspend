@@ -1,7 +1,8 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
@@ -44,7 +45,9 @@ const CHART_COLORS = [
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
+  // Sujet de destruction pour éviter les fuites mémoire sur les subscriptions
+  private readonly destroy$ = new Subject<void>();
   loading = signal(false);
   dashboardData = signal<DashboardResponse | null>(null);
   expensesByCategory = signal<CategoryExpenseResponse[]>([]);
@@ -124,17 +127,26 @@ export class DashboardComponent implements OnInit {
   }
 
   private initViewOptions(): void {
-    // Update labels with translations
-    this.translateService.get(['dashboard.tableView', 'dashboard.chartView']).subscribe((translations) => {
-      this.viewOptions = [
-        { label: translations['dashboard.tableView'] || 'Table', value: 'table', icon: 'pi pi-table' },
-        { label: translations['dashboard.chartView'] || 'Chart', value: 'chart', icon: 'pi pi-chart-pie' },
-      ];
-    });
+    // Utilisation de takeUntil pour éviter les fuites mémoire
+    this.translateService
+      .get(['dashboard.tableView', 'dashboard.chartView'])
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((translations) => {
+        this.viewOptions = [
+          { label: translations['dashboard.tableView'] || 'Table', value: 'table', icon: 'pi pi-table' },
+          { label: translations['dashboard.chartView'] || 'Chart', value: 'chart', icon: 'pi pi-chart-pie' },
+        ];
+      });
   }
 
   ngOnInit(): void {
     this.loadDashboard();
+  }
+
+  // Libère toutes les subscriptions lors de la destruction du composant
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   private getCurrentMonth(): string {

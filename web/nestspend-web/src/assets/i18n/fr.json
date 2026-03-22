@@ -124,7 +124,16 @@
     "showing": "Affichage de",
     "to": "à",
     "of": "sur",
-    "entries": "entrées"
+    "entries": "entrées",
+    "loadError": "Échec du chargement des transactions",
+    "filterError": "Échec de l'application des filtres",
+    "createSuccess": "Transaction créée avec succès",
+    "updateSuccess": "Transaction mise à jour avec succès",
+    "deleteSuccess": "Transaction supprimée avec succès",
+    "saveError": "Échec de l'enregistrement de la transaction",
+    "deleteError": "Échec de la suppression de la transaction",
+    "confirmDeleteHeader": "Confirmer la suppression",
+    "confirmDeleteMessage": "Êtes-vous sûr de vouloir supprimer cette transaction ?"
   },
   "categories": {
     "title": "Catégories",

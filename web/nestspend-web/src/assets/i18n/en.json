@@ -124,7 +124,16 @@
     "showing": "Showing",
     "to": "to",
     "of": "of",
-    "entries": "entries"
+    "entries": "entries",
+    "loadError": "Failed to load transactions",
+    "filterError": "Failed to apply filters",
+    "createSuccess": "Transaction created successfully",
+    "updateSuccess": "Transaction updated successfully",
+    "deleteSuccess": "Transaction deleted successfully",
+    "saveError": "Failed to save transaction",
+    "deleteError": "Failed to delete transaction",
+    "confirmDeleteHeader": "Confirm Deletion",
+    "confirmDeleteMessage": "Are you sure you want to delete this transaction?"
   },
   "categories": {
     "title": "Categories",
