@@ -75,6 +75,10 @@ management:
     health:
       show-details: when-authorized
 
+# CORS - origines autorisées en production
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:https://nestspend.gilmotech.be,http://nestspend.gilmotech.be}
+
 # Désactivation de Swagger UI en production (optionnel, décommenter si souhaité)
 # springdoc:
 #   api-docs:
