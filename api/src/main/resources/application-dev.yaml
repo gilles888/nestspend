@@ -46,6 +46,11 @@ jwt:
   secret: nestspend-dev-secret-key-must-be-at-least-32-chars
   expiration-ms: 86400000
 
+# CORS - origines autorisées en développement
+# En production, configurer cors.allowed-origins via variable d'environnement ou application-prod.yaml
+cors:
+  allowed-origins: http://localhost:4200
+
 # Actuator - tout exposé en développement
 management:
   endpoints:

@@ -57,8 +57,11 @@ public class DashboardService {
                 householdId, TransactionType.EXPENSE, startDate, endDate
         );
 
-        // Calculate net balance
-        Long netCents = totalIncomeCents - totalExpenseCents;
+        // Calcul du solde net - on protège contre les valeurs nulles renvoyées par la requête JPQL
+        // même si COALESCE est présent, le type Long en Java peut être null si aucune ligne n'existe
+        long safeIncome = totalIncomeCents != null ? totalIncomeCents : 0L;
+        long safeExpenses = totalExpenseCents != null ? totalExpenseCents : 0L;
+        Long netCents = safeIncome - safeExpenses;
 
         // Get expenses breakdown by category
         List<Object[]> expenseData = transactionRepository.sumExpensesByCategory(
@@ -74,8 +77,8 @@ public class DashboardService {
 
         return new DashboardResponse(
                 month,
-                totalIncomeCents,
-                totalExpenseCents,
+                safeIncome,
+                safeExpenses,
                 netCents,
                 expensesByCategory
         );
