@@ -29,6 +29,8 @@ export class SidebarComponent {
     { labelKey: 'nav.expenseTable', icon: 'pi pi-table', route: '/expense-table' },
     // Lien vers le tableau de projection annuelle avec cellules éditables
     { labelKey: 'nav.tableauProjection', icon: 'pi pi-calendar', route: '/tableau-projection' },
+    // Lien vers la page "Mon Mois Type" (budget de référence mensuel)
+    { labelKey: 'nav.moisType', icon: 'pi pi-file-edit', route: '/mois-type' },
     // Lien vers la page de visualisation graphique
     { labelKey: 'nav.graphiques', icon: 'pi pi-chart-pie', route: '/graphiques' },
     { labelKey: 'nav.transactions', icon: 'pi pi-list', route: '/transactions' },

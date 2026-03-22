@@ -1,0 +1,15 @@
+// Styles de la page Mois Type
+:host {
+  display: block;
+}
+
+// Styles pour les tableaux des dépenses
+:host ::ng-deep {
+  .p-toggleswitch {
+    transform: scale(0.85);
+  }
+
+  .p-inputnumber {
+    width: 100%;
+  }
+}

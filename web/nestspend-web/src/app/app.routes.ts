@@ -79,6 +79,12 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/graphiques/graphiques').then((m) => m.GraphiquesComponent),
       },
+      // Route vers la page "Mon Mois Type" (budget de référence mensuel avec projection annuelle)
+      {
+        path: 'mois-type',
+        loadComponent: () =>
+          import('./pages/mois-type/mois-type').then((m) => m.MoisTypeComponent),
+      },
     ],
   },
 ];

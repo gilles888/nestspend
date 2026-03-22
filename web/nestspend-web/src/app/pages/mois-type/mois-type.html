@@ -1,0 +1,534 @@
+<p-toast></p-toast>
+
+<div class="max-w-7xl mx-auto space-y-8">
+
+  <!-- En-tête de la page -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl lg:text-3xl font-bold text-text-main dark:text-dark-text-main">
+        Mon Mois Type
+      </h1>
+      <p class="text-text-muted dark:text-dark-text-muted mt-1">
+        Définissez vos revenus et dépenses récurrentes pour projeter votre épargne annuelle
+      </p>
+    </div>
+    @if (moisType()) {
+      <div class="flex items-center gap-2">
+        <p-button
+          label="Charger des exemples"
+          icon="pi pi-database"
+          severity="secondary"
+          (onClick)="chargerExemples()"
+        ></p-button>
+      </div>
+    }
+  </div>
+
+  <!-- État de chargement -->
+  @if (loading()) {
+    <div class="flex items-center justify-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+    </div>
+  }
+
+  @if (!loading()) {
+
+    <!-- Écran de création du premier mois type -->
+    @if (!moisType()) {
+      <div class="flex flex-col items-center justify-center py-16 gap-6">
+        <div class="flex items-center justify-center w-20 h-20 rounded-2xl bg-primary/10 text-primary">
+          <i class="pi pi-calendar text-4xl"></i>
+        </div>
+        <div class="text-center">
+          <h2 class="text-xl font-semibold text-text-main dark:text-dark-text-main">
+            Aucun mois type défini
+          </h2>
+          <p class="text-text-muted dark:text-dark-text-muted mt-2">
+            Créez votre premier mois type pour commencer à projeter votre épargne
+          </p>
+        </div>
+        <p-button
+          label="Créer mon mois type"
+          icon="pi pi-plus"
+          severity="primary"
+          (onClick)="creerMoisType()"
+        ></p-button>
+      </div>
+    }
+
+    @if (moisType()) {
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+        <!-- Colonne principale (revenus + dépenses) -->
+        <div class="xl:col-span-2 space-y-6">
+
+          <!-- Section Revenus -->
+          <div class="bg-surface dark:bg-dark-surface p-6 rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50">
+            <div class="flex items-center gap-3 mb-5">
+              <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 text-green-600">
+                <i class="pi pi-wallet text-lg"></i>
+              </div>
+              <h2 class="text-lg font-semibold text-text-main dark:text-dark-text-main">
+                Revenus mensuels
+              </h2>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <!-- Revenus principaux -->
+              <div>
+                <label class="block text-sm font-medium text-text-muted dark:text-dark-text-muted mb-2">
+                  Salaire / Revenus principaux (€)
+                </label>
+                <p-inputNumber
+                  [(ngModel)]="moisType()!.revenus"
+                  (ngModelChange)="onRevenusChange()"
+                  mode="decimal"
+                  [minFractionDigits]="2"
+                  [maxFractionDigits]="2"
+                  [min]="0"
+                  styleClass="w-full"
+                  inputStyleClass="w-full"
+                ></p-inputNumber>
+              </div>
+              <!-- Autres revenus -->
+              <div>
+                <label class="block text-sm font-medium text-text-muted dark:text-dark-text-muted mb-2">
+                  Autres revenus (primes, locatif, etc.) (€)
+                </label>
+                <p-inputNumber
+                  [(ngModel)]="moisType()!.autresRevenus"
+                  (ngModelChange)="onRevenusChange()"
+                  mode="decimal"
+                  [minFractionDigits]="2"
+                  [maxFractionDigits]="2"
+                  [min]="0"
+                  styleClass="w-full"
+                  inputStyleClass="w-full"
+                ></p-inputNumber>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section Dépenses Fixes -->
+          <div class="bg-surface dark:bg-dark-surface p-6 rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50">
+            <div class="flex items-center justify-between mb-5">
+              <div class="flex items-center gap-3">
+                <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600">
+                  <i class="pi pi-lock text-lg"></i>
+                </div>
+                <div>
+                  <h2 class="text-lg font-semibold text-text-main dark:text-dark-text-main">
+                    Dépenses fixes
+                  </h2>
+                  <p class="text-xs text-text-muted dark:text-dark-text-muted">
+                    {{ depensesFixesList.length }} dépense(s) &bull;
+                    Total mensuel :
+                    <span class="font-semibold text-text-main dark:text-dark-text-main">
+                      {{ resume().depensesFixesMensuel | currency:'EUR':'symbol':'1.2-2' }}
+                    </span>
+                  </p>
+                </div>
+              </div>
+              <p-button
+                icon="pi pi-plus"
+                severity="secondary"
+                [rounded]="true"
+                [text]="true"
+                pTooltip="Ajouter une dépense fixe"
+                (onClick)="ajouterDepenseFixe()"
+              ></p-button>
+            </div>
+
+            <!-- Tableau des dépenses fixes -->
+            @if (depensesFixesList.length > 0) {
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="border-b border-border/50 dark:border-dark-border/50">
+                      <th class="text-left py-2 px-3 text-text-muted dark:text-dark-text-muted font-medium">Libellé</th>
+                      <th class="text-left py-2 px-3 text-text-muted dark:text-dark-text-muted font-medium">Catégorie</th>
+                      <th class="text-right py-2 px-3 text-text-muted dark:text-dark-text-muted font-medium">Montant</th>
+                      <th class="text-left py-2 px-3 text-text-muted dark:text-dark-text-muted font-medium">Fréquence</th>
+                      <th class="text-right py-2 px-3 text-text-muted dark:text-dark-text-muted font-medium">/mois</th>
+                      <th class="text-center py-2 px-3 text-text-muted dark:text-dark-text-muted font-medium">Actif</th>
+                      <th class="py-2 px-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (depense of depensesFixesList; track depense.id; let i = $index) {
+                      <tr class="border-b border-border/30 dark:border-dark-border/30 hover:bg-surface-alt dark:hover:bg-dark-surface-alt transition-colors"
+                          [class.opacity-50]="!depense.actif">
+
+                        <!-- Mode édition -->
+                        @if (editingFixeIndex() === i) {
+                          <td class="py-1 px-2">
+                            <input type="text" [(ngModel)]="depense.nom"
+                                   (ngModelChange)="onDepenseChange(depense)"
+                                   class="w-full px-2 py-1 rounded border border-border dark:border-dark-border bg-surface dark:bg-dark-surface text-text-main dark:text-dark-text-main text-sm"
+                                   placeholder="Nom de la dépense" />
+                          </td>
+                          <td class="py-1 px-2">
+                            <p-select
+                              [options]="categorieOptions"
+                              [(ngModel)]="depense.categorie"
+                              (ngModelChange)="onDepenseChange(depense)"
+                              optionLabel="label"
+                              optionValue="value"
+                              styleClass="w-full text-sm"
+                            ></p-select>
+                          </td>
+                          <td class="py-1 px-2">
+                            <p-inputNumber
+                              [(ngModel)]="depense.montant"
+                              (ngModelChange)="onDepenseChange(depense)"
+                              mode="decimal"
+                              [minFractionDigits]="2"
+                              [maxFractionDigits]="2"
+                              [min]="0"
+                              styleClass="w-28"
+                              inputStyleClass="w-full text-right"
+                            ></p-inputNumber>
+                          </td>
+                          <td class="py-1 px-2">
+                            <p-select
+                              [options]="frequenceOptions"
+                              [(ngModel)]="depense.frequence"
+                              (ngModelChange)="onDepenseChange(depense)"
+                              optionLabel="label"
+                              optionValue="value"
+                              styleClass="w-full text-sm"
+                            ></p-select>
+                          </td>
+                          <td class="py-1 px-2 text-right text-text-muted dark:text-dark-text-muted">
+                            {{ (depense.montantMensuel ?? 0) | currency:'EUR':'symbol':'1.2-2' }}
+                          </td>
+                          <td class="py-1 px-2 text-center">
+                            <p-toggleSwitch [(ngModel)]="depense.actif" (ngModelChange)="onDepenseChange(depense)"></p-toggleSwitch>
+                          </td>
+                          <td class="py-1 px-2">
+                            <p-button icon="pi pi-check" severity="success" [text]="true" [rounded]="true"
+                                      (onClick)="editingFixeIndex.set(-1)"></p-button>
+                          </td>
+                        } @else {
+                          <!-- Mode affichage -->
+                          <td class="py-2 px-3 text-text-main dark:text-dark-text-main">
+                            {{ depense.nom || '(sans nom)' }}
+                          </td>
+                          <td class="py-2 px-3">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                                  [class]="getCategorieBadgeClass(depense.categorie)">
+                              {{ getCategorieLabel(depense.categorie) }}
+                            </span>
+                          </td>
+                          <td class="py-2 px-3 text-right text-text-main dark:text-dark-text-main">
+                            {{ depense.montant | currency:'EUR':'symbol':'1.2-2' }}
+                          </td>
+                          <td class="py-2 px-3 text-text-muted dark:text-dark-text-muted">
+                            {{ getFrequenceLabel(depense.frequence) }}
+                          </td>
+                          <td class="py-2 px-3 text-right font-medium text-text-main dark:text-dark-text-main">
+                            {{ (depense.montantMensuel ?? 0) | currency:'EUR':'symbol':'1.2-2' }}
+                          </td>
+                          <td class="py-2 px-3 text-center">
+                            <p-toggleSwitch [(ngModel)]="depense.actif" (ngModelChange)="toggleDepense(depense)"></p-toggleSwitch>
+                          </td>
+                          <td class="py-2 px-3">
+                            <div class="flex items-center gap-1">
+                              <p-button icon="pi pi-pencil" severity="secondary" [text]="true" [rounded]="true"
+                                        pTooltip="Modifier"
+                                        (onClick)="editingFixeIndex.set(i)"></p-button>
+                              <p-button icon="pi pi-trash" severity="danger" [text]="true" [rounded]="true"
+                                        pTooltip="Supprimer"
+                                        (onClick)="supprimerDepense(depense)"></p-button>
+                            </div>
+                          </td>
+                        }
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <div class="text-center py-6 text-text-muted dark:text-dark-text-muted">
+                <i class="pi pi-inbox text-3xl mb-2 block"></i>
+                Aucune dépense fixe. Cliquez sur + pour en ajouter une.
+              </div>
+            }
+          </div>
+
+          <!-- Section Dépenses Variables -->
+          <div class="bg-surface dark:bg-dark-surface p-6 rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50">
+            <div class="flex items-center justify-between mb-5">
+              <div class="flex items-center gap-3">
+                <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 text-orange-600">
+                  <i class="pi pi-sync text-lg"></i>
+                </div>
+                <div>
+                  <h2 class="text-lg font-semibold text-text-main dark:text-dark-text-main">
+                    Dépenses variables
+                  </h2>
+                  <p class="text-xs text-text-muted dark:text-dark-text-muted">
+                    {{ depensesVariablesList.length }} dépense(s) &bull;
+                    Total mensuel :
+                    <span class="font-semibold text-text-main dark:text-dark-text-main">
+                      {{ resume().depensesVariablesMensuel | currency:'EUR':'symbol':'1.2-2' }}
+                    </span>
+                  </p>
+                </div>
+              </div>
+              <p-button
+                icon="pi pi-plus"
+                severity="secondary"
+                [rounded]="true"
+                [text]="true"
+                pTooltip="Ajouter une dépense variable"
+                (onClick)="ajouterDepenseVariable()"
+              ></p-button>
+            </div>
+
+            <!-- Tableau des dépenses variables -->
+            @if (depensesVariablesList.length > 0) {
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead>
+                    <tr class="border-b border-border/50 dark:border-dark-border/50">
+                      <th class="text-left py-2 px-3 text-text-muted dark:text-dark-text-muted font-medium">Libellé</th>
+                      <th class="text-left py-2 px-3 text-text-muted dark:text-dark-text-muted font-medium">Catégorie</th>
+                      <th class="text-right py-2 px-3 text-text-muted dark:text-dark-text-muted font-medium">Montant</th>
+                      <th class="text-left py-2 px-3 text-text-muted dark:text-dark-text-muted font-medium">Fréquence</th>
+                      <th class="text-right py-2 px-3 text-text-muted dark:text-dark-text-muted font-medium">/mois</th>
+                      <th class="text-center py-2 px-3 text-text-muted dark:text-dark-text-muted font-medium">Actif</th>
+                      <th class="py-2 px-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (depense of depensesVariablesList; track depense.id; let i = $index) {
+                      <tr class="border-b border-border/30 dark:border-dark-border/30 hover:bg-surface-alt dark:hover:bg-dark-surface-alt transition-colors"
+                          [class.opacity-50]="!depense.actif">
+
+                        @if (editingVariableIndex() === i) {
+                          <td class="py-1 px-2">
+                            <input type="text" [(ngModel)]="depense.nom"
+                                   (ngModelChange)="onDepenseChange(depense)"
+                                   class="w-full px-2 py-1 rounded border border-border dark:border-dark-border bg-surface dark:bg-dark-surface text-text-main dark:text-dark-text-main text-sm"
+                                   placeholder="Nom de la dépense" />
+                          </td>
+                          <td class="py-1 px-2">
+                            <p-select
+                              [options]="categorieOptions"
+                              [(ngModel)]="depense.categorie"
+                              (ngModelChange)="onDepenseChange(depense)"
+                              optionLabel="label"
+                              optionValue="value"
+                              styleClass="w-full text-sm"
+                            ></p-select>
+                          </td>
+                          <td class="py-1 px-2">
+                            <p-inputNumber
+                              [(ngModel)]="depense.montant"
+                              (ngModelChange)="onDepenseChange(depense)"
+                              mode="decimal"
+                              [minFractionDigits]="2"
+                              [maxFractionDigits]="2"
+                              [min]="0"
+                              styleClass="w-28"
+                              inputStyleClass="w-full text-right"
+                            ></p-inputNumber>
+                          </td>
+                          <td class="py-1 px-2">
+                            <p-select
+                              [options]="frequenceOptions"
+                              [(ngModel)]="depense.frequence"
+                              (ngModelChange)="onDepenseChange(depense)"
+                              optionLabel="label"
+                              optionValue="value"
+                              styleClass="w-full text-sm"
+                            ></p-select>
+                          </td>
+                          <td class="py-1 px-2 text-right text-text-muted dark:text-dark-text-muted">
+                            {{ (depense.montantMensuel ?? 0) | currency:'EUR':'symbol':'1.2-2' }}
+                          </td>
+                          <td class="py-1 px-2 text-center">
+                            <p-toggleSwitch [(ngModel)]="depense.actif" (ngModelChange)="onDepenseChange(depense)"></p-toggleSwitch>
+                          </td>
+                          <td class="py-1 px-2">
+                            <p-button icon="pi pi-check" severity="success" [text]="true" [rounded]="true"
+                                      (onClick)="editingVariableIndex.set(-1)"></p-button>
+                          </td>
+                        } @else {
+                          <td class="py-2 px-3 text-text-main dark:text-dark-text-main">
+                            {{ depense.nom || '(sans nom)' }}
+                          </td>
+                          <td class="py-2 px-3">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                                  [class]="getCategorieBadgeClass(depense.categorie)">
+                              {{ getCategorieLabel(depense.categorie) }}
+                            </span>
+                          </td>
+                          <td class="py-2 px-3 text-right text-text-main dark:text-dark-text-main">
+                            {{ depense.montant | currency:'EUR':'symbol':'1.2-2' }}
+                          </td>
+                          <td class="py-2 px-3 text-text-muted dark:text-dark-text-muted">
+                            {{ getFrequenceLabel(depense.frequence) }}
+                          </td>
+                          <td class="py-2 px-3 text-right font-medium text-text-main dark:text-dark-text-main">
+                            {{ (depense.montantMensuel ?? 0) | currency:'EUR':'symbol':'1.2-2' }}
+                          </td>
+                          <td class="py-2 px-3 text-center">
+                            <p-toggleSwitch [(ngModel)]="depense.actif" (ngModelChange)="toggleDepense(depense)"></p-toggleSwitch>
+                          </td>
+                          <td class="py-2 px-3">
+                            <div class="flex items-center gap-1">
+                              <p-button icon="pi pi-pencil" severity="secondary" [text]="true" [rounded]="true"
+                                        pTooltip="Modifier"
+                                        (onClick)="editingVariableIndex.set(i)"></p-button>
+                              <p-button icon="pi pi-trash" severity="danger" [text]="true" [rounded]="true"
+                                        pTooltip="Supprimer"
+                                        (onClick)="supprimerDepense(depense)"></p-button>
+                            </div>
+                          </td>
+                        }
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <div class="text-center py-6 text-text-muted dark:text-dark-text-muted">
+                <i class="pi pi-inbox text-3xl mb-2 block"></i>
+                Aucune dépense variable. Cliquez sur + pour en ajouter une.
+              </div>
+            }
+          </div>
+
+        </div>
+
+        <!-- Colonne latérale (résumé + projection) -->
+        <div class="space-y-6">
+
+          <!-- Résumé financier mensuel -->
+          <div class="bg-surface dark:bg-dark-surface p-6 rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 sticky top-4">
+            <div class="flex items-center gap-3 mb-5">
+              <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-600">
+                <i class="pi pi-chart-pie text-lg"></i>
+              </div>
+              <h2 class="text-lg font-semibold text-text-main dark:text-dark-text-main">
+                Résumé mensuel
+              </h2>
+            </div>
+
+            <div class="space-y-3">
+              <!-- Revenus -->
+              <div class="flex justify-between items-center">
+                <span class="text-text-muted dark:text-dark-text-muted text-sm">Revenus</span>
+                <span class="font-semibold text-green-600 dark:text-green-400">
+                  {{ resume().revenusMensuel | currency:'EUR':'symbol':'1.2-2' }}
+                </span>
+              </div>
+
+              <div class="border-t border-border/30 dark:border-dark-border/30 pt-3">
+                <div class="flex justify-between items-center mb-1">
+                  <span class="text-text-muted dark:text-dark-text-muted text-sm">Dépenses fixes</span>
+                  <span class="text-text-main dark:text-dark-text-main text-sm">
+                    {{ resume().depensesFixesMensuel | currency:'EUR':'symbol':'1.2-2' }}
+                  </span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-text-muted dark:text-dark-text-muted text-sm">Dépenses variables</span>
+                  <span class="text-text-main dark:text-dark-text-main text-sm">
+                    {{ resume().depensesVariablesMensuel | currency:'EUR':'symbol':'1.2-2' }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="border-t border-border/50 dark:border-dark-border/50 pt-3">
+                <div class="flex justify-between items-center">
+                  <span class="text-text-muted dark:text-dark-text-muted text-sm font-medium">Total dépenses</span>
+                  <span class="font-semibold text-red-600 dark:text-red-400">
+                    -{{ resume().totalDepensesMensuel | currency:'EUR':'symbol':'1.2-2' }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="border-t-2 border-border dark:border-dark-border pt-3 mt-2">
+                <div class="flex justify-between items-center">
+                  <span class="font-medium text-text-main dark:text-dark-text-main">Épargne mensuelle</span>
+                  <span class="text-xl font-bold" [class]="getEpargneClass(resume().epargneMensuel)">
+                    {{ resume().epargneMensuel | currency:'EUR':'symbol':'1.2-2' }}
+                  </span>
+                </div>
+                <div class="flex justify-between items-center mt-1">
+                  <span class="text-xs text-text-muted dark:text-dark-text-muted">Taux d'épargne</span>
+                  <span class="text-sm font-semibold" [class]="getEpargneClass(resume().tauxEpargneMensuel)">
+                    {{ resume().tauxEpargneMensuel }}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Résumé annuel -->
+            <div class="mt-5 pt-5 border-t border-border/50 dark:border-dark-border/50">
+              <div class="flex items-center gap-2 mb-3">
+                <i class="pi pi-calendar text-primary text-sm"></i>
+                <span class="text-sm font-medium text-text-main dark:text-dark-text-main">Projection annuelle</span>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-xl">
+                  <p class="text-xs text-text-muted dark:text-dark-text-muted">Revenus</p>
+                  <p class="text-sm font-bold text-green-600 dark:text-green-400">
+                    {{ resume().revenusAnnuel | currency:'EUR':'symbol':'1.0-0' }}
+                  </p>
+                </div>
+                <div class="bg-red-50 dark:bg-red-900/20 p-3 rounded-xl">
+                  <p class="text-xs text-text-muted dark:text-dark-text-muted">Dépenses</p>
+                  <p class="text-sm font-bold text-red-600 dark:text-red-400">
+                    {{ resume().totalDepensesAnnuel | currency:'EUR':'symbol':'1.0-0' }}
+                  </p>
+                </div>
+                <div class="col-span-2 p-3 rounded-xl"
+                     [class]="isEpargnePositive(resume().epargneAnnuel) ? 'bg-primary/10' : 'bg-red-100 dark:bg-red-900/20'">
+                  <p class="text-xs text-text-muted dark:text-dark-text-muted">Épargne annuelle</p>
+                  <p class="text-lg font-bold" [class]="getEpargneClass(resume().epargneAnnuel)">
+                    {{ resume().epargneAnnuel | currency:'EUR':'symbol':'1.0-0' }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Graphique de projection annuelle -->
+      @if (projection()) {
+        <div class="bg-surface dark:bg-dark-surface p-6 rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600">
+              <i class="pi pi-chart-line text-lg"></i>
+            </div>
+            <div>
+              <h2 class="text-lg font-semibold text-text-main dark:text-dark-text-main">
+                Projection d'épargne {{ projection()!.annee }}
+              </h2>
+              <p class="text-xs text-text-muted dark:text-dark-text-muted">
+                Épargne totale projetée :
+                <span class="font-semibold" [class]="getEpargneClass(projection()!.totalEpargne)">
+                  {{ projection()!.totalEpargne | currency:'EUR':'symbol':'1.0-0' }}
+                </span>
+                &bull; Taux : <span class="font-semibold">{{ projection()!.tauxEpargne }}%</span>
+              </p>
+            </div>
+          </div>
+
+          @if (chartData()) {
+            <div style="height: 280px;">
+              <p-chart type="line" [data]="chartData()" [options]="chartOptions"></p-chart>
+            </div>
+          }
+        </div>
+      }
+
+    }
+  }
+
+</div>
