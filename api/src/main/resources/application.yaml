@@ -1,14 +1,28 @@
+# =============================================================================
+# Configuration principale de l'application NestSpend
+# =============================================================================
+# Ce fichier contient les propriétés communes à tous les profils.
+# Les propriétés spécifiques à un environnement sont dans :
+#   - application-dev.yaml  : développement local avec H2
+#   - application-test.yaml : tests automatisés avec H2 in-memory
+#   - application-prod.yaml : production avec PostgreSQL
+#
+# Profil actif par défaut : dev
+# Pour changer : SPRING_PROFILES_ACTIVE=prod
+# =============================================================================
+
 spring:
   application:
     name: nestspend-api
   profiles:
-    active: dev
+    active: ${SPRING_PROFILES_ACTIVE:dev}
 
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
-# JWT defaults - override via environment variables in production:
-# JWT_SECRET and JWT_EXPIRATION_MS
+# Configuration JWT - valeurs par défaut surchargées par profil
+# IMPORTANT : JWT_SECRET DOIT être défini en production via variable d'environnement
+# En développement, la valeur par défaut est dans application-dev.yaml
 jwt:
   secret: ${JWT_SECRET:}
   expiration-ms: ${JWT_EXPIRATION_MS:86400000}

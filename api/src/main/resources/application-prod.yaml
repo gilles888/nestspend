@@ -1,0 +1,83 @@
+# =============================================================================
+# Configuration du profil PRODUCTION (PostgreSQL)
+# =============================================================================
+# Ce fichier est chargé automatiquement lorsque le profil "prod" est actif.
+# Pour activer : SPRING_PROFILES_ACTIVE=prod (variable d'environnement)
+#
+# Toutes les valeurs sensibles doivent être fournies via des variables
+# d'environnement - NE PAS mettre de credentials en clair dans ce fichier.
+# =============================================================================
+
+spring:
+  datasource:
+    # URL de connexion PostgreSQL - format : jdbc:postgresql://<host>:<port>/<database>
+    # Exemple : jdbc:postgresql://localhost:5432/nestspend
+    url: ${POSTGRES_URL:jdbc:postgresql://localhost:5432/nestspend}
+    driver-class-name: org.postgresql.Driver
+    username: ${POSTGRES_USER:nestspend}
+    password: ${POSTGRES_PASSWORD}
+    hikari:
+      # Pool de connexions - taille adaptée pour une instance unique
+      minimum-idle: 2
+      maximum-pool-size: 10
+      idle-timeout: 600000
+      connection-timeout: 30000
+      # Validation de la connexion
+      connection-test-query: SELECT 1
+
+  jpa:
+    hibernate:
+      # En production, Flyway gère le schéma - DDL auto doit être "validate" uniquement
+      ddl-auto: validate
+    properties:
+      hibernate:
+        # Dialecte PostgreSQL (détection automatique via driver, mais explicite pour clarté)
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+        jdbc:
+          time_zone: UTC
+        # Optimisation des batchs d'insertion
+        jdbc.batch_size: 25
+        order_inserts: true
+        order_updates: true
+    # Ne pas afficher le SQL en production
+    show-sql: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    # Validation du checksum des migrations existantes
+    validate-on-migrate: true
+    # Nettoyage interdit en production
+    clean-disabled: true
+    # Schéma cible
+    default-schema: public
+
+  # Désactivation de la console H2 en production
+  h2:
+    console:
+      enabled: false
+
+# Configuration JWT - OBLIGATOIRE en production via variable d'environnement
+# JWT_SECRET doit être une chaîne aléatoire d'au moins 32 caractères
+# Exemple de génération : openssl rand -base64 64
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+# Actuator - exposition minimale en production
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# Désactivation de Swagger UI en production (optionnel, décommenter si souhaité)
+# springdoc:
+#   api-docs:
+#     enabled: false
+#   swagger-ui:
+#     enabled: false
