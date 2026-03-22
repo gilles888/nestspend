@@ -5,7 +5,7 @@ import {
   signal,
   computed,
 } from '@angular/core';
-import { CommonModule, CurrencyPipe, DecimalPipe } from '@angular/common';
+import { CommonModule, CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Subject, debounceTime, takeUntil } from 'rxjs';
@@ -54,7 +54,6 @@ const NOMS_MOIS = [
   imports: [
     CommonModule,
     CurrencyPipe,
-    DecimalPipe,
     FormsModule,
     TranslateModule,
     ButtonModule,
