@@ -53,6 +53,18 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/accounts/accounts').then((m) => m.AccountsComponent),
       },
+      // Route vers la gestion des budgets par catégorie
+      {
+        path: 'budgets',
+        loadComponent: () =>
+          import('./pages/budgets/budgets').then((m) => m.BudgetsComponent),
+      },
+      // Route vers le tableau de projection des dépenses (tableur mensuel/annuel)
+      {
+        path: 'expense-table',
+        loadComponent: () =>
+          import('./pages/expense-table/expense-table').then((m) => m.ExpenseTableComponent),
+      },
     ],
   },
 ];

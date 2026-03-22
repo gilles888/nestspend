@@ -1,0 +1,314 @@
+<div class="max-w-7xl mx-auto space-y-8">
+  <!-- En-tête avec sélecteur de mois -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl lg:text-3xl font-bold text-text-main dark:text-dark-text-main">
+        {{ 'budgets.title' | translate }}
+      </h1>
+      <p class="text-text-muted dark:text-dark-text-muted mt-1">{{ 'budgets.subtitle' | translate }}</p>
+    </div>
+    <div class="flex items-center gap-3 flex-wrap">
+      <label class="text-sm font-medium text-text-muted dark:text-dark-text-muted">
+        {{ 'budgets.selectMonth' | translate }}
+      </label>
+      <p-select
+        [options]="monthOptions"
+        [ngModel]="selectedMonth()"
+        (ngModelChange)="onMonthChange($event)"
+        optionLabel="label"
+        optionValue="value"
+        styleClass="w-48"
+      ></p-select>
+      <p-button
+        [label]="'budgets.addBudget' | translate"
+        icon="pi pi-plus"
+        (onClick)="openNewBudgetDialog()"
+        severity="primary"
+      ></p-button>
+    </div>
+  </div>
+
+  <!-- État de chargement -->
+  @if (loading()) {
+    <div class="flex items-center justify-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+    </div>
+  }
+
+  @if (!loading()) {
+    <!-- Cartes de résumé global -->
+    @if (budgetsWithSpending().length > 0) {
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-6">
+        <!-- Budget total -->
+        <div class="bg-surface dark:bg-dark-surface p-6 rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-primary">
+              <i class="pi pi-chart-bar text-xl"></i>
+            </div>
+          </div>
+          <p class="text-text-muted dark:text-dark-text-muted text-sm font-medium">{{ 'budgets.totalBudget' | translate }}</p>
+          <p class="text-2xl font-bold text-text-main dark:text-dark-text-main mt-1">
+            {{ totalBudgetEuros() | currency:'EUR' }}
+          </p>
+        </div>
+
+        <!-- Total dépensé -->
+        <div class="bg-surface dark:bg-dark-surface p-6 rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/30 text-danger">
+              <i class="pi pi-arrow-up-right text-xl"></i>
+            </div>
+          </div>
+          <p class="text-text-muted dark:text-dark-text-muted text-sm font-medium">{{ 'budgets.totalSpent' | translate }}</p>
+          <p class="text-2xl font-bold text-danger mt-1">{{ totalSpentEuros() | currency:'EUR' }}</p>
+        </div>
+
+        <!-- Budgets dépassés -->
+        <div
+          class="p-6 rounded-2xl shadow-card dark:shadow-dark-card border"
+          [class.bg-red-50]="budgetsOverLimit() > 0"
+          [class.dark:bg-red-900/20]="budgetsOverLimit() > 0"
+          [class.border-danger]="budgetsOverLimit() > 0"
+          [class.bg-surface]="budgetsOverLimit() === 0"
+          [class.dark:bg-dark-surface]="budgetsOverLimit() === 0"
+          [class.border-border/50]="budgetsOverLimit() === 0"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <div
+              class="flex items-center justify-center w-12 h-12 rounded-xl"
+              [class.bg-red-100]="budgetsOverLimit() > 0"
+              [class.text-danger]="budgetsOverLimit() > 0"
+              [class.bg-emerald-100]="budgetsOverLimit() === 0"
+              [class.text-success]="budgetsOverLimit() === 0"
+            >
+              <i [class]="budgetsOverLimit() > 0 ? 'pi pi-exclamation-triangle text-xl' : 'pi pi-check text-xl'"></i>
+            </div>
+          </div>
+          <p class="text-text-muted dark:text-dark-text-muted text-sm font-medium">{{ 'budgets.overBudgetCount' | translate }}</p>
+          <p class="text-2xl font-bold mt-1" [class.text-danger]="budgetsOverLimit() > 0" [class.text-success]="budgetsOverLimit() === 0">
+            {{ budgetsOverLimit() }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Graphique comparatif budget vs dépenses -->
+      @if (chartData()) {
+        <div class="bg-surface dark:bg-dark-surface rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 overflow-hidden">
+          <div class="p-6 border-b border-border/50 dark:border-dark-border/50">
+            <h2 class="text-lg font-semibold text-text-main dark:text-dark-text-main">
+              {{ 'budgets.chartTitle' | translate }}
+            </h2>
+          </div>
+          <div class="p-6">
+            <div style="height: 300px;">
+              <p-chart
+                type="bar"
+                [data]="chartData()"
+                [options]="chartOptions"
+                [style]="{ height: '100%', width: '100%' }"
+              ></p-chart>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Tableau des budgets par catégorie -->
+      <div class="bg-surface dark:bg-dark-surface rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 overflow-hidden">
+        <div class="p-6 border-b border-border/50 dark:border-dark-border/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h2 class="text-lg font-semibold text-text-main dark:text-dark-text-main">
+            {{ 'budgets.budgetsByCategory' | translate }}
+          </h2>
+          <p-button
+            [label]="'budgets.copyToNextMonth' | translate"
+            icon="pi pi-copy"
+            severity="secondary"
+            (onClick)="copyBudgetsToNextMonth()"
+            [pTooltip]="'budgets.copyToNextMonthTooltip' | translate"
+          ></p-button>
+        </div>
+
+        <p-table [value]="budgetsWithSpending()" [tableStyle]="{ 'min-width': '100%' }" styleClass="p-datatable-striped">
+          <ng-template #header>
+            <tr>
+              <th class="text-left">{{ 'budgets.category' | translate }}</th>
+              <th class="text-right">{{ 'budgets.spent' | translate }}</th>
+              <th class="text-right">{{ 'budgets.limit' | translate }}</th>
+              <th class="text-right">{{ 'budgets.remaining' | translate }}</th>
+              <th class="text-center" style="min-width: 200px;">{{ 'budgets.progress' | translate }}</th>
+              <th class="text-center">{{ 'budgets.status' | translate }}</th>
+              <th class="text-center">{{ 'budgets.actions' | translate }}</th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-budget>
+            <tr>
+              <!-- Catégorie avec icône colorée -->
+              <td class="text-text-main dark:text-dark-text-main font-medium">
+                <div class="flex items-center gap-2">
+                  @if (budget.categoryIcon) {
+                    <div
+                      class="flex items-center justify-center w-8 h-8 rounded-lg"
+                      [style.background-color]="budget.categoryColor + '20'"
+                    >
+                      <i
+                        [class]="'pi ' + budget.categoryIcon + ' text-sm'"
+                        [style.color]="budget.categoryColor"
+                      ></i>
+                    </div>
+                  }
+                  {{ budget.categoryName }}
+                </div>
+              </td>
+
+              <!-- Montant dépensé -->
+              <td class="text-right font-semibold text-danger">
+                {{ budget.spentEuros | currency:'EUR' }}
+              </td>
+
+              <!-- Limite mensuelle -->
+              <td class="text-right text-text-muted dark:text-dark-text-muted">
+                {{ budget.monthlyLimitEuros | currency:'EUR' }}
+              </td>
+
+              <!-- Montant restant -->
+              <td class="text-right font-semibold" [class.text-success]="!budget.isOverBudget" [class.text-danger]="budget.isOverBudget">
+                {{ budget.remainingEuros | currency:'EUR' }}
+              </td>
+
+              <!-- Barre de progression avec couleur selon le niveau d'utilisation -->
+              <td class="text-center">
+                <div class="flex items-center gap-2">
+                  <div class="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden" style="height: 8px;">
+                    <div
+                      class="h-full rounded-full transition-all duration-300"
+                      [style.width.%]="budget.percentUsed > 100 ? 100 : budget.percentUsed"
+                      [class.bg-success]="budget.percentUsed < 80"
+                      [class.bg-warning]="budget.percentUsed >= 80 && budget.percentUsed < 100"
+                      [class.bg-danger]="budget.percentUsed >= 100"
+                    ></div>
+                  </div>
+                  <span class="text-xs text-text-muted dark:text-dark-text-muted w-10 text-right">
+                    {{ budget.percentUsed }}%
+                  </span>
+                </div>
+              </td>
+
+              <!-- Statut -->
+              <td class="text-center">
+                <p-tag
+                  [value]="getStatusLabel(budget)"
+                  [severity]="getStatusSeverity(budget)"
+                ></p-tag>
+              </td>
+
+              <!-- Actions -->
+              <td class="text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <p-button
+                    icon="pi pi-pencil"
+                    [rounded]="true"
+                    [text]="true"
+                    severity="info"
+                    (onClick)="openEditBudgetDialog(budget)"
+                    [pTooltip]="'budgets.edit' | translate"
+                  ></p-button>
+                  <p-button
+                    icon="pi pi-trash"
+                    [rounded]="true"
+                    [text]="true"
+                    severity="danger"
+                    (onClick)="confirmDelete(budget)"
+                    [pTooltip]="'budgets.delete' | translate"
+                  ></p-button>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+    } @else {
+      <!-- État vide -->
+      <div class="bg-surface dark:bg-dark-surface rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 p-12 text-center">
+        <div class="flex items-center justify-center w-20 h-20 mx-auto rounded-2xl bg-slate-100 dark:bg-slate-800 mb-6">
+          <i class="pi pi-chart-bar text-3xl text-slate-400"></i>
+        </div>
+        <h3 class="text-lg font-semibold text-text-main dark:text-dark-text-main mb-2">
+          {{ 'budgets.noBudgets' | translate }}
+        </h3>
+        <p class="text-text-muted dark:text-dark-text-muted text-sm mb-6 max-w-md mx-auto">
+          {{ 'budgets.noBudgetsDesc' | translate }}
+        </p>
+        <p-button
+          [label]="'budgets.addFirstBudget' | translate"
+          icon="pi pi-plus"
+          (onClick)="openNewBudgetDialog()"
+          severity="primary"
+        ></p-button>
+      </div>
+    }
+  }
+</div>
+
+<!-- Dialogue d'ajout/édition de budget -->
+<p-dialog
+  [header]="editingBudget() ? ('budgets.editBudget' | translate) : ('budgets.addBudget' | translate)"
+  [visible]="dialogVisible()"
+  (visibleChange)="dialogVisible.set($event)"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [style]="{ width: '450px' }"
+  (onHide)="closeDialog()"
+>
+  <div class="space-y-4">
+    <!-- Catégorie -->
+    <div>
+      <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">
+        {{ 'budgets.category' | translate }}
+      </label>
+      <p-select
+        [options]="getAvailableCategoryOptions()"
+        [(ngModel)]="budgetForm.categoryId"
+        optionLabel="label"
+        optionValue="value"
+        [placeholder]="'budgets.selectCategory' | translate"
+        styleClass="w-full"
+        [disabled]="!!editingBudget()"
+      ></p-select>
+    </div>
+
+    <!-- Limite mensuelle -->
+    <div>
+      <label class="block text-sm font-medium text-text-main dark:text-dark-text-main mb-1">
+        {{ 'budgets.monthlyLimit' | translate }}
+      </label>
+      <p-inputnumber
+        [(ngModel)]="budgetForm.monthlyLimitEuros"
+        mode="currency"
+        currency="EUR"
+        locale="fr-BE"
+        [min]="0.01"
+        class="w-full"
+      ></p-inputnumber>
+    </div>
+  </div>
+
+  <ng-template #footer>
+    <div class="flex justify-end gap-2">
+      <p-button
+        [label]="'budgets.cancel' | translate"
+        severity="secondary"
+        (onClick)="closeDialog()"
+      ></p-button>
+      <p-button
+        [label]="editingBudget() ? ('budgets.save' | translate) : ('budgets.create' | translate)"
+        severity="primary"
+        (onClick)="saveBudget()"
+        [loading]="submitting()"
+        [disabled]="!isFormValid()"
+      ></p-button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<p-confirmDialog></p-confirmDialog>
+<p-toast></p-toast>

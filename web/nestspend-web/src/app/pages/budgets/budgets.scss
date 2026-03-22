@@ -1,0 +1,16 @@
+// Styles de la page de gestion des budgets
+:host {
+  display: block;
+}
+
+// Ajustement responsive pour le tableau de progression
+:host ::ng-deep {
+  .p-progressbar {
+    border-radius: 4px;
+  }
+
+  .p-progressbar-value {
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+}

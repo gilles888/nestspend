@@ -1,0 +1,225 @@
+<div class="max-w-full mx-auto space-y-8">
+  <!-- En-tête avec contrôles -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl lg:text-3xl font-bold text-text-main dark:text-dark-text-main">
+        {{ 'expenseTable.title' | translate }}
+      </h1>
+      <p class="text-text-muted dark:text-dark-text-muted mt-1">{{ 'expenseTable.subtitle' | translate }}</p>
+    </div>
+    <div class="flex items-center gap-3 flex-wrap">
+      <!-- Sélecteur de période -->
+      <p-selectbutton
+        [options]="periodOptions"
+        [ngModel]="selectedPeriod()"
+        (ngModelChange)="onPeriodChange($event)"
+        optionLabel="label"
+        optionValue="value"
+      ></p-selectbutton>
+
+      <!-- Toggle vue tableau/graphique -->
+      <p-selectbutton
+        [options]="viewOptions"
+        [ngModel]="selectedView()"
+        (ngModelChange)="selectedView.set($event)"
+        optionLabel="label"
+        optionValue="value"
+      >
+        <ng-template #item let-item>
+          <i [class]="item.icon"></i>
+        </ng-template>
+      </p-selectbutton>
+
+      <!-- Export CSV -->
+      <p-button
+        icon="pi pi-download"
+        [label]="'expenseTable.exportCsv' | translate"
+        severity="secondary"
+        (onClick)="exportCsv()"
+        [pTooltip]="'expenseTable.exportCsvTooltip' | translate"
+        [disabled]="projectionRows().length === 0"
+      ></p-button>
+    </div>
+  </div>
+
+  <!-- État de chargement global -->
+  @if (loading()) {
+    <div class="flex items-center justify-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+    </div>
+  }
+
+  @if (!loading()) {
+    <!-- Vue graphique -->
+    @if (selectedView() === 'chart') {
+      <div class="bg-surface dark:bg-dark-surface rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 overflow-hidden">
+        <div class="p-6 border-b border-border/50 dark:border-dark-border/50">
+          <h2 class="text-lg font-semibold text-text-main dark:text-dark-text-main">
+            {{ 'expenseTable.stackedChart' | translate }}
+          </h2>
+        </div>
+        <div class="p-6">
+          @if (chartData()) {
+            <div style="height: 400px;">
+              <p-chart
+                type="bar"
+                [data]="chartData()"
+                [options]="chartOptions"
+                [style]="{ height: '100%', width: '100%' }"
+              ></p-chart>
+            </div>
+          } @else {
+            <div class="text-center text-text-muted dark:text-dark-text-muted py-8">
+              <i class="pi pi-chart-bar text-3xl mb-4 block text-slate-400"></i>
+              <p>{{ 'expenseTable.noData' | translate }}</p>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Vue tableau -->
+    @if (selectedView() === 'table') {
+      <div class="bg-surface dark:bg-dark-surface rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 overflow-hidden">
+        <div class="p-6 border-b border-border/50 dark:border-dark-border/50">
+          <h2 class="text-lg font-semibold text-text-main dark:text-dark-text-main">
+            {{ 'expenseTable.tableTitle' | translate }}
+          </h2>
+          <p class="text-sm text-text-muted dark:text-dark-text-muted mt-1">
+            {{ 'expenseTable.tableSubtitle' | translate }}
+          </p>
+        </div>
+
+        @if (projectionRows().length > 0) {
+          <!-- Tableau avec scroll horizontal pour les nombreux mois -->
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse">
+              <!-- En-têtes : catégorie + un mois par colonne + total + moyenne -->
+              <thead class="bg-slate-50 dark:bg-slate-800/50 border-b border-border/50 dark:border-dark-border/50">
+                <tr>
+                  <th class="text-left px-4 py-3 text-sm font-semibold text-text-muted dark:text-dark-text-muted sticky left-0 bg-slate-50 dark:bg-slate-800/50 z-10 min-w-40">
+                    {{ 'expenseTable.category' | translate }}
+                  </th>
+                  @for (month of months(); track month.key) {
+                    <th class="text-right px-4 py-3 text-sm font-semibold text-text-muted dark:text-dark-text-muted min-w-28">
+                      <div class="flex flex-col items-end gap-1">
+                        <span>{{ month.label }}</span>
+                        @if (isMonthLoading(month.key)) {
+                          <div class="animate-spin rounded-full h-3 w-3 border-b border-primary"></div>
+                        }
+                        @if (isMonthError(month.key)) {
+                          <i class="pi pi-exclamation-triangle text-danger text-xs"></i>
+                        }
+                      </div>
+                    </th>
+                  }
+                  <th class="text-right px-4 py-3 text-sm font-semibold text-primary bg-blue-50 dark:bg-blue-900/20 min-w-28">
+                    {{ 'expenseTable.total' | translate }}
+                  </th>
+                  <th class="text-right px-4 py-3 text-sm font-semibold text-text-muted dark:text-dark-text-muted min-w-28">
+                    {{ 'expenseTable.average' | translate }}
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                @for (row of projectionRows(); track row.categoryId) {
+                  <tr class="border-b border-border/30 dark:border-dark-border/30 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                    <!-- Nom de catégorie avec indicateur coloré -->
+                    <td class="px-4 py-3 sticky left-0 bg-surface dark:bg-dark-surface z-10">
+                      <div class="flex items-center gap-2">
+                        @if (row.categoryColor) {
+                          <div
+                            class="w-3 h-3 rounded-full flex-shrink-0"
+                            [style.background-color]="row.categoryColor"
+                          ></div>
+                        }
+                        <span class="text-sm font-medium text-text-main dark:text-dark-text-main truncate">
+                          {{ row.categoryName }}
+                        </span>
+                      </div>
+                    </td>
+
+                    <!-- Montant par mois -->
+                    @for (month of months(); track month.key) {
+                      <td class="px-4 py-3 text-right">
+                        @if (isMonthLoading(month.key)) {
+                          <span class="text-text-muted/40 dark:text-dark-text-muted/40 text-xs">...</span>
+                        } @else if (getAmount(row, month.key) > 0) {
+                          <span class="text-sm font-medium text-danger">
+                            {{ getAmount(row, month.key) | currency:'EUR' }}
+                          </span>
+                        } @else {
+                          <span class="text-text-muted/40 dark:text-dark-text-muted/40 text-sm">-</span>
+                        }
+                      </td>
+                    }
+
+                    <!-- Total de la catégorie -->
+                    <td class="px-4 py-3 text-right bg-blue-50/50 dark:bg-blue-900/10">
+                      <span class="text-sm font-bold text-primary">
+                        {{ row.total | currency:'EUR' }}
+                      </span>
+                    </td>
+
+                    <!-- Moyenne mensuelle de la catégorie -->
+                    <td class="px-4 py-3 text-right">
+                      <span class="text-sm text-text-muted dark:text-dark-text-muted">
+                        {{ row.average | currency:'EUR' }}
+                      </span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+
+              <!-- Ligne de total global -->
+              <tfoot class="bg-slate-100 dark:bg-slate-700/50 border-t-2 border-border dark:border-dark-border">
+                <tr>
+                  <td class="px-4 py-3 sticky left-0 bg-slate-100 dark:bg-slate-700/50 z-10">
+                    <span class="text-sm font-bold text-text-main dark:text-dark-text-main uppercase tracking-wide">
+                      {{ 'expenseTable.total' | translate }}
+                    </span>
+                  </td>
+                  @for (month of months(); track month.key) {
+                    <td class="px-4 py-3 text-right">
+                      <span class="text-sm font-bold text-text-main dark:text-dark-text-main">
+                        {{ getMonthTotal(month.key) | currency:'EUR' }}
+                      </span>
+                    </td>
+                  }
+                  <!-- Total global -->
+                  <td class="px-4 py-3 text-right bg-blue-100/50 dark:bg-blue-900/20">
+                    <span class="text-sm font-bold text-primary">
+                      {{ grandTotal() | currency:'EUR' }}
+                    </span>
+                  </td>
+                  <!-- Moyenne globale -->
+                  <td class="px-4 py-3 text-right">
+                    <span class="text-sm font-bold text-text-muted dark:text-dark-text-muted">
+                      {{ grandAverage() | currency:'EUR' }}
+                    </span>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        } @else {
+          <!-- État vide -->
+          <div class="p-12 text-center">
+            <div class="flex items-center justify-center w-20 h-20 mx-auto rounded-2xl bg-slate-100 dark:bg-slate-800 mb-6">
+              <i class="pi pi-table text-3xl text-slate-400"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-text-main dark:text-dark-text-main mb-2">
+              {{ 'expenseTable.noData' | translate }}
+            </h3>
+            <p class="text-text-muted dark:text-dark-text-muted text-sm max-w-md mx-auto">
+              {{ 'expenseTable.noDataDesc' | translate }}
+            </p>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>
+
+<p-toast></p-toast>

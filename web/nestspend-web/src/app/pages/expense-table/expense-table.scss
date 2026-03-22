@@ -1,0 +1,14 @@
+// Styles du tableau de projection des dépenses
+:host {
+  display: block;
+}
+
+// Style de la colonne sticky catégorie
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+
+  td, th {
+    white-space: nowrap;
+  }
+}

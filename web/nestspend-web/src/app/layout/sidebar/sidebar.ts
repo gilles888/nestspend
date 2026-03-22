@@ -23,6 +23,10 @@ export class SidebarComponent {
   navItems: NavItem[] = [
     { labelKey: 'nav.dashboard', icon: 'pi pi-home', route: '/dashboard' },
     { labelKey: 'nav.projections', icon: 'pi pi-chart-line', route: '/projections' },
+    // Lien vers la nouvelle page de gestion des budgets par catégorie
+    { labelKey: 'nav.budgets', icon: 'pi pi-chart-bar', route: '/budgets' },
+    // Lien vers le tableau de projection des dépenses mensuel/annuel
+    { labelKey: 'nav.expenseTable', icon: 'pi pi-table', route: '/expense-table' },
     { labelKey: 'nav.transactions', icon: 'pi pi-list', route: '/transactions' },
     { labelKey: 'nav.categories', icon: 'pi pi-tags', route: '/categories' },
     { labelKey: 'nav.classificationRules', icon: 'pi pi-cog', route: '/classification-rules' },
