@@ -3,6 +3,7 @@ package be.gilmotech.nestspend.service;
 import be.gilmotech.nestspend.domain.entity.Account;
 import be.gilmotech.nestspend.domain.repository.AccountRepository;
 import be.gilmotech.nestspend.domain.repository.HouseholdRepository;
+import be.gilmotech.nestspend.domain.repository.TransactionRepository;
 import be.gilmotech.nestspend.dto.account.AccountCreateRequest;
 import be.gilmotech.nestspend.dto.account.AccountResponse;
 import be.gilmotech.nestspend.dto.account.AccountUpdateRequest;
@@ -23,13 +24,16 @@ public class AccountService {
 
     private final AccountRepository accountRepository;
     private final HouseholdRepository householdRepository;
+    private final TransactionRepository transactionRepository;
     private final CurrentUserService currentUserService;
 
     public AccountService(AccountRepository accountRepository,
                           HouseholdRepository householdRepository,
+                          TransactionRepository transactionRepository,
                           CurrentUserService currentUserService) {
         this.accountRepository = accountRepository;
         this.householdRepository = householdRepository;
+        this.transactionRepository = transactionRepository;
         this.currentUserService = currentUserService;
     }
 
@@ -116,10 +120,12 @@ public class AccountService {
     }
 
     /**
-     * Delete an account by ID for the current user's household.
+     * Supprime un compte par son identifiant.
+     * La suppression est refusée si des transactions référencent ce compte.
      *
-     * @param id the account ID
-     * @throws ResourceNotFoundException if account not found or belongs to different household
+     * @param id l'identifiant du compte
+     * @throws ResourceNotFoundException si le compte n'existe pas ou appartient à un autre foyer
+     * @throws ResourceConflictException si des transactions référencent ce compte
      */
     @Transactional
     public void deleteAccount(UUID id) {
@@ -127,6 +133,14 @@ public class AccountService {
 
         Account account = accountRepository.findByIdAndHouseholdId(id, householdId)
                 .orElseThrow(() -> new ResourceNotFoundException("Account not found"));
+
+        // Vérifie si des transactions référencent ce compte avant la suppression
+        long transactionCount = transactionRepository.countByAccountId(id);
+        if (transactionCount > 0) {
+            throw new ResourceConflictException(
+                    "Impossible de supprimer le compte '" + account.getName() + "' : "
+                    + transactionCount + " transaction(s) y sont rattachées.");
+        }
 
         accountRepository.delete(account);
     }

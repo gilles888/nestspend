@@ -4,6 +4,7 @@ import be.gilmotech.nestspend.domain.entity.Category;
 import be.gilmotech.nestspend.domain.entity.Household;
 import be.gilmotech.nestspend.domain.repository.CategoryRepository;
 import be.gilmotech.nestspend.domain.repository.HouseholdRepository;
+import be.gilmotech.nestspend.domain.repository.TransactionRepository;
 import be.gilmotech.nestspend.dto.category.CategoryCreateRequest;
 import be.gilmotech.nestspend.dto.category.CategoryResponse;
 import be.gilmotech.nestspend.dto.category.CategoryUpdateRequest;
@@ -24,6 +25,7 @@ public class CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final HouseholdRepository householdRepository;
+    private final TransactionRepository transactionRepository;
     private final CurrentUserService currentUserService;
 
     /**
@@ -46,9 +48,11 @@ public class CategoryService {
 
     public CategoryService(CategoryRepository categoryRepository,
                            HouseholdRepository householdRepository,
+                           TransactionRepository transactionRepository,
                            CurrentUserService currentUserService) {
         this.categoryRepository = categoryRepository;
         this.householdRepository = householdRepository;
+        this.transactionRepository = transactionRepository;
         this.currentUserService = currentUserService;
     }
 
@@ -155,10 +159,12 @@ public class CategoryService {
     }
 
     /**
-     * Delete a category by ID for the current user's household.
+     * Supprime une catégorie par son identifiant.
+     * La suppression est refusée si des transactions ou des budgets référencent cette catégorie.
      *
-     * @param id the category ID
-     * @throws ResourceNotFoundException if category not found or belongs to different household
+     * @param id l'identifiant de la catégorie
+     * @throws ResourceNotFoundException si la catégorie n'existe pas ou appartient à un autre foyer
+     * @throws ResourceConflictException si la catégorie est utilisée par des transactions ou budgets
      */
     @Transactional
     public void deleteCategory(UUID id) {
@@ -166,6 +172,15 @@ public class CategoryService {
 
         Category category = categoryRepository.findByIdAndHouseholdId(id, householdId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+
+        // Vérifie si des transactions référencent cette catégorie avant la suppression
+        long transactionCount = transactionRepository.countByCategoryId(id);
+        if (transactionCount > 0) {
+            throw new ResourceConflictException(
+                    "Impossible de supprimer la catégorie '" + category.getName() + "' : "
+                    + transactionCount + " transaction(s) y sont rattachées. "
+                    + "Reassignez les transactions à une autre catégorie avant de supprimer celle-ci.");
+        }
 
         categoryRepository.delete(category);
     }

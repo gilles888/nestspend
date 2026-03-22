@@ -121,6 +121,24 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     );
 
     /**
+     * Compte le nombre de transactions référençant une catégorie spécifique.
+     * Utilisé pour empêcher la suppression d'une catégorie encore utilisée.
+     *
+     * @param categoryId l'identifiant de la catégorie
+     * @return le nombre de transactions liées à cette catégorie
+     */
+    long countByCategoryId(UUID categoryId);
+
+    /**
+     * Compte le nombre de transactions référençant un compte spécifique.
+     * Utilisé pour empêcher la suppression d'un compte encore utilisé.
+     *
+     * @param accountId l'identifiant du compte
+     * @return le nombre de transactions liées à ce compte
+     */
+    long countByAccountId(UUID accountId);
+
+    /**
      * Somme des montants pour une catégorie spécifique, un type et une plage de dates.
      * Utilisée pour le calcul des dépenses réelles dans le cadre du suivi budgétaire.
      *
