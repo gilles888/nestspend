@@ -20,3 +20,17 @@ Thumbs.db
 
 # Compiled
 *.class
+
+# Variables d'environnement - NE JAMAIS commiter
+.env
+*.env.local
+
+# Docker
+docker-compose.override.yml
+
+# Node / Angular
+node_modules/
+dist/
+
+# Données de test locales
+*.h2.db
