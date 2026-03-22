@@ -1,9 +1,15 @@
 package be.gilmotech.nestspend.service;
 
+import be.gilmotech.nestspend.domain.entity.DepenseType;
 import be.gilmotech.nestspend.domain.entity.FutureEvent;
+import be.gilmotech.nestspend.domain.entity.MoisType;
 import be.gilmotech.nestspend.domain.enums.TransactionType;
+import be.gilmotech.nestspend.domain.repository.DepenseTypeRepository;
 import be.gilmotech.nestspend.domain.repository.FutureEventRepository;
+import be.gilmotech.nestspend.domain.repository.MoisTypeRepository;
 import be.gilmotech.nestspend.domain.repository.TransactionRepository;
+import be.gilmotech.nestspend.dto.moistype.ProjectionAnnuelleDto;
+import be.gilmotech.nestspend.dto.moistype.ProjectionMoisDto;
 import be.gilmotech.nestspend.dto.projection.AnnualProjectionResponse;
 import be.gilmotech.nestspend.dto.projection.AnnualSavingsResponse;
 import be.gilmotech.nestspend.dto.projection.MonthlyExpenseProjection;
@@ -12,12 +18,15 @@ import be.gilmotech.nestspend.security.CurrentUserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.Year;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -39,17 +48,26 @@ public class ProjectionService {
 
     private final TransactionRepository transactionRepository;
     private final FutureEventRepository futureEventRepository;
+    private final MoisTypeRepository moisTypeRepository;
+    private final DepenseTypeRepository depenseTypeRepository;
     private final CurrentUserService currentUserService;
     private final ProjectionHelper projectionHelper;
+    private final MoisTypeService moisTypeService;
 
     public ProjectionService(TransactionRepository transactionRepository,
                              FutureEventRepository futureEventRepository,
+                             MoisTypeRepository moisTypeRepository,
+                             DepenseTypeRepository depenseTypeRepository,
                              CurrentUserService currentUserService,
-                             ProjectionHelper projectionHelper) {
+                             ProjectionHelper projectionHelper,
+                             MoisTypeService moisTypeService) {
         this.transactionRepository = transactionRepository;
         this.futureEventRepository = futureEventRepository;
+        this.moisTypeRepository = moisTypeRepository;
+        this.depenseTypeRepository = depenseTypeRepository;
         this.currentUserService = currentUserService;
         this.projectionHelper = projectionHelper;
+        this.moisTypeService = moisTypeService;
     }
 
     /**
@@ -261,5 +279,135 @@ public class ProjectionService {
             throw new IllegalArgumentException(
                     "Année invalide : " + year + ". Doit être comprise entre 2000 et " + (currentYear + 10));
         }
+    }
+
+    // ==========================================================================
+    // Projections basées sur le mois type
+    // ==========================================================================
+
+    /**
+     * Génère la projection annuelle des 12 mois à partir du mois type de l'année donnée.
+     * Si aucun mois type n'existe pour cette année, retourne une projection vide (tous à zéro).
+     * L'épargne cumulée est calculée mois par mois.
+     *
+     * @param year l'année cible (ex : 2026)
+     * @return la projection annuelle avec 12 mois et les totaux annuels
+     * @throws IllegalArgumentException si l'année est invalide
+     */
+    @Transactional(readOnly = true)
+    public ProjectionAnnuelleDto getProjectionMoisType(int year) {
+        validerAnnee(year);
+        UUID householdId = currentUserService.getCurrentHouseholdId();
+
+        // Charge le premier mois type de l'année (s'il existe)
+        Optional<MoisType> moisTypeOpt = trouverMoisTypePourAnnee(householdId, year);
+
+        if (moisTypeOpt.isEmpty()) {
+            // Aucun mois type défini : retour d'une projection vide à zéro
+            return construireProjectionVide(year);
+        }
+
+        MoisType moisType = moisTypeOpt.get();
+
+        // Récupère les dépenses actives du mois type pour les calculs
+        List<DepenseType> depensesActives = depenseTypeRepository
+                .findActiveByMoisTypeIdAndHouseholdId(moisType.getId(), householdId);
+
+        // Calcul des totaux mensuels
+        long[] totaux = moisTypeService.calculerTotauxMensuels(depensesActives);
+        long totalFixesCents = totaux[0];
+        long totalVariablesCents = totaux[1];
+        long totalDepensesMensuelles = totalFixesCents + totalVariablesCents;
+        long totalRevenusMensuels = moisType.getRevenus() + moisType.getAutresRevenus();
+        long epargneMensuelle = totalRevenusMensuels - totalDepensesMensuelles;
+
+        // Construction des 12 mois avec épargne cumulée
+        List<ProjectionMoisDto> mois = new ArrayList<>(12);
+        long epargneCumulee = 0L;
+        long totalRevenusCents = 0L;
+        long totalDepensesCents = 0L;
+        long totalEpargneCents = 0L;
+
+        for (int numMois = 1; numMois <= 12; numMois++) {
+            YearMonth ym = YearMonth.of(year, numMois);
+            String moisLabel = ym.format(MONTH_FORMATTER);
+
+            epargneCumulee += epargneMensuelle;
+            totalRevenusCents += totalRevenusMensuels;
+            totalDepensesCents += totalDepensesMensuelles;
+            totalEpargneCents += epargneMensuelle;
+
+            mois.add(new ProjectionMoisDto(
+                    moisLabel,
+                    totalRevenusMensuels,
+                    totalFixesCents,
+                    totalVariablesCents,
+                    totalDepensesMensuelles,
+                    epargneMensuelle,
+                    epargneCumulee
+            ));
+        }
+
+        // Taux d'épargne annuel
+        double tauxEpargne = totalRevenusCents > 0
+                ? BigDecimal.valueOf((double) totalEpargneCents / totalRevenusCents * 100)
+                        .setScale(2, RoundingMode.HALF_UP)
+                        .doubleValue()
+                : 0.0;
+
+        return new ProjectionAnnuelleDto(
+                year,
+                mois,
+                totalRevenusCents,
+                totalDepensesCents,
+                totalEpargneCents,
+                tauxEpargne
+        );
+    }
+
+    /**
+     * Calcule le total de l'épargne possible sur l'année à partir du mois type.
+     * Retourne 0 si aucun mois type n'est défini pour l'année.
+     *
+     * @param year l'année cible
+     * @return la projection annuelle (on peut en extraire le totalEpargneCents)
+     * @throws IllegalArgumentException si l'année est invalide
+     */
+    @Transactional(readOnly = true)
+    public ProjectionAnnuelleDto getEpargneMoisType(int year) {
+        // On réutilise la projection complète, l'épargne totale est incluse
+        return getProjectionMoisType(year);
+    }
+
+    /**
+     * Recherche le premier mois type disponible pour un foyer et une année donnée.
+     * Si plusieurs mois types existent pour l'année, le plus ancien est utilisé.
+     *
+     * @param householdId l'identifiant du foyer
+     * @param year        l'année de référence
+     * @return le mois type s'il existe
+     */
+    private Optional<MoisType> trouverMoisTypePourAnnee(UUID householdId, int year) {
+        List<MoisType> candidats = moisTypeRepository.findByHouseholdIdAndAnneeWithDepenses(householdId, year);
+        return candidats.isEmpty() ? Optional.empty() : Optional.of(candidats.get(0));
+    }
+
+    /**
+     * Construit une projection annuelle vide (tous les montants à zéro).
+     * Retournée quand aucun mois type n'est défini pour l'année demandée.
+     *
+     * @param year l'année de la projection
+     * @return une projection avec 12 mois à zéro
+     */
+    private ProjectionAnnuelleDto construireProjectionVide(int year) {
+        List<ProjectionMoisDto> mois = new ArrayList<>(12);
+        for (int numMois = 1; numMois <= 12; numMois++) {
+            YearMonth ym = YearMonth.of(year, numMois);
+            mois.add(new ProjectionMoisDto(
+                    ym.format(MONTH_FORMATTER),
+                    0L, 0L, 0L, 0L, 0L, 0L
+            ));
+        }
+        return new ProjectionAnnuelleDto(year, mois, 0L, 0L, 0L, 0.0);
     }
 }

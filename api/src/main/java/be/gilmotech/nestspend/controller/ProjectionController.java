@@ -1,5 +1,6 @@
 package be.gilmotech.nestspend.controller;
 
+import be.gilmotech.nestspend.dto.moistype.ProjectionAnnuelleDto;
 import be.gilmotech.nestspend.dto.projection.AnnualProjectionResponse;
 import be.gilmotech.nestspend.dto.projection.AnnualSavingsResponse;
 import be.gilmotech.nestspend.service.ProjectionService;
@@ -13,6 +14,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -116,6 +118,54 @@ public class ProjectionController {
         // Si aucune année n'est fournie, on utilise l'année courante
         int targetYear = (year != null) ? year : Year.now().getValue();
         AnnualSavingsResponse response = projectionService.getSavingsProjection(targetYear);
+        return ResponseEntity.ok(response);
+    }
+
+    // ==========================================================================
+    // Projections basées sur le mois type
+    // ==========================================================================
+
+    @GetMapping("/{year}/mois-type")
+    @Operation(
+            summary = "Projection annuelle depuis le mois type",
+            description = "Calcule la projection des 12 mois à partir du mois type défini pour l'année donnée. " +
+                    "Retourne les dépenses fixes, variables, l'épargne mensuelle et l'épargne cumulée. " +
+                    "Si aucun mois type n'est défini pour l'année, retourne une projection vide (zéros)."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Projection générée avec succès"),
+            @ApiResponse(responseCode = "400", description = "Année invalide",
+                    content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "401", description = "Token JWT manquant ou invalide",
+                    content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<ProjectionAnnuelleDto> getProjectionMoisType(
+            @Parameter(description = "Année de projection (ex : 2026)", example = "2026", required = true)
+            @PathVariable int year
+    ) {
+        ProjectionAnnuelleDto response = projectionService.getProjectionMoisType(year);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{year}/mois-type/epargne")
+    @Operation(
+            summary = "Épargne annuelle depuis le mois type",
+            description = "Calcule le total de l'épargne possible sur l'année à partir du mois type. " +
+                    "Alias de /{year}/mois-type qui expose les mêmes données — " +
+                    "utilisez totalEpargneCents dans la réponse."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Épargne calculée avec succès"),
+            @ApiResponse(responseCode = "400", description = "Année invalide",
+                    content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "401", description = "Token JWT manquant ou invalide",
+                    content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<ProjectionAnnuelleDto> getEpargneMoisType(
+            @Parameter(description = "Année de projection (ex : 2026)", example = "2026", required = true)
+            @PathVariable int year
+    ) {
+        ProjectionAnnuelleDto response = projectionService.getEpargneMoisType(year);
         return ResponseEntity.ok(response);
     }
 }
