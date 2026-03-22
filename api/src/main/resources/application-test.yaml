@@ -1,19 +1,39 @@
+# =============================================================================
+# Configuration du profil TEST (H2 in-memory)
+# =============================================================================
+# Ce profil est activé automatiquement lors de l'exécution des tests unitaires
+# et d'intégration (annotation @SpringBootTest ou @DataJpaTest).
+#
+# NON_KEYWORDS=VALUE,MONTH : nécessaire pour éviter les conflits avec les mots réservés
+# "VALUE" et "MONTH" dans H2 en mode PostgreSQL, utilisés dans les migrations Flyway.
+# =============================================================================
+
 spring:
   datasource:
-    url: jdbc:h2:mem:nestspend_test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    # H2 in-memory avec émulation PostgreSQL - même URL pattern qu'en dev
+    url: jdbc:h2:mem:nestspend_test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;NON_KEYWORDS=VALUE,MONTH
     driver-class-name: org.h2.Driver
     username: sa
     password:
 
   jpa:
     hibernate:
+      # Flyway gère le schéma - validate vérifie la cohérence entités/tables
       ddl-auto: validate
+    # Désactivation de open-in-view pour éviter les requêtes DB hors transaction
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
 
   flyway:
     enabled: true
     locations: classpath:db/migration
+    # Nettoyage autorisé en test pour repartir de zéro entre les suites de tests
+    clean-disabled: false
 
-# JWT configuration for test only
+# JWT de test uniquement - jamais utilisé en production
 jwt:
   secret: nestspend-test-secret-key-must-be-at-least-32-chars
   expiration-ms: 3600000
