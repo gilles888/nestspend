@@ -1,0 +1,215 @@
+<div class="max-w-7xl mx-auto space-y-8">
+  <!-- En-tête avec sélecteur de période -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl lg:text-3xl font-bold text-text-main dark:text-dark-text-main">
+        {{ 'graphiques.title' | translate }}
+      </h1>
+      <p class="text-text-muted dark:text-dark-text-muted mt-1">
+        {{ 'graphiques.subtitle' | translate }}
+      </p>
+    </div>
+    <div class="flex items-center gap-3">
+      <label class="text-sm font-medium text-text-muted dark:text-dark-text-muted">
+        {{ 'graphiques.period' | translate }}
+      </label>
+      <p-selectbutton
+        [options]="periodOptions"
+        [ngModel]="selectedPeriod()"
+        (ngModelChange)="onPeriodChange($event)"
+        optionLabel="label"
+        optionValue="value"
+      ></p-selectbutton>
+    </div>
+  </div>
+
+  <!-- Indicateur de chargement global -->
+  @if (loading()) {
+    <div class="flex items-center justify-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+    </div>
+  }
+
+  @if (!loading()) {
+    <!-- Cartes de résumé de la période -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-6">
+      <!-- Épargne moyenne mensuelle -->
+      <div class="bg-surface dark:bg-dark-surface p-6 rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/30">
+            <i class="pi pi-trending-up text-xl text-success"></i>
+          </div>
+        </div>
+        <p class="text-text-muted dark:text-dark-text-muted text-sm font-medium">
+          {{ 'graphiques.avgMonthlySavings' | translate }}
+        </p>
+        <p class="text-2xl font-bold mt-1" [ngClass]="getValueClass(averageSavings())">
+          {{ averageSavings() | currency:'EUR':'symbol':'1.0-2' }}
+        </p>
+      </div>
+
+      <!-- Épargne totale sur la période -->
+      <div class="bg-surface dark:bg-dark-surface p-6 rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30">
+            <i class="pi pi-wallet text-xl text-primary"></i>
+          </div>
+        </div>
+        <p class="text-text-muted dark:text-dark-text-muted text-sm font-medium">
+          {{ 'graphiques.totalSavingsPeriod' | translate }}
+        </p>
+        <p class="text-2xl font-bold mt-1" [ngClass]="getValueClass(totalSavingsPeriod())">
+          {{ totalSavingsPeriod() | currency:'EUR':'symbol':'1.0-2' }}
+        </p>
+      </div>
+
+      <!-- Meilleur mois d'épargne -->
+      <div class="bg-surface dark:bg-dark-surface p-6 rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/30">
+            <i class="pi pi-star text-xl text-amber-500"></i>
+          </div>
+        </div>
+        <p class="text-text-muted dark:text-dark-text-muted text-sm font-medium">
+          {{ 'graphiques.bestMonth' | translate }}
+        </p>
+        @if (bestSavingsMonth()) {
+          <p class="text-lg font-bold text-text-main dark:text-dark-text-main mt-1">
+            {{ bestSavingsMonth()!.label }}
+          </p>
+          <p class="text-sm font-medium text-success">
+            {{ bestSavingsMonth()!.value | currency:'EUR' }}
+          </p>
+        } @else {
+          <p class="text-text-muted dark:text-dark-text-muted mt-1">-</p>
+        }
+      </div>
+    </div>
+
+    <!-- Graphique 1 : Courbe d'épargne mensuelle -->
+    <div class="bg-surface dark:bg-dark-surface rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 overflow-hidden">
+      <div class="p-6 border-b border-border/50 dark:border-dark-border/50">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30">
+            <i class="pi pi-chart-line text-success"></i>
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-text-main dark:text-dark-text-main">
+              {{ 'graphiques.savingsCurve' | translate }}
+            </h2>
+            <p class="text-sm text-text-muted dark:text-dark-text-muted">
+              {{ 'graphiques.savingsCurveDesc' | translate }}
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="p-6">
+        @if (savingsChartData()) {
+          <div style="height: 300px;">
+            <p-chart
+              type="line"
+              [data]="savingsChartData()"
+              [options]="savingsChartOptions"
+              [style]="{ height: '100%', width: '100%' }"
+            ></p-chart>
+          </div>
+        } @else {
+          <div class="text-center text-text-muted dark:text-dark-text-muted py-8">
+            <i class="pi pi-chart-line text-3xl mb-4 block text-slate-400"></i>
+            <p>{{ 'graphiques.noData' | translate }}</p>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Graphique 2 : Histogramme revenus vs dépenses -->
+    <div class="bg-surface dark:bg-dark-surface rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 overflow-hidden">
+      <div class="p-6 border-b border-border/50 dark:border-dark-border/50">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30">
+            <i class="pi pi-chart-bar text-primary"></i>
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-text-main dark:text-dark-text-main">
+              {{ 'graphiques.incomeVsExpenses' | translate }}
+            </h2>
+            <p class="text-sm text-text-muted dark:text-dark-text-muted">
+              {{ 'graphiques.incomeVsExpensesDesc' | translate }}
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="p-6">
+        @if (barChartData()) {
+          <div style="height: 320px;">
+            <p-chart
+              type="bar"
+              [data]="barChartData()"
+              [options]="barChartOptions"
+              [style]="{ height: '100%', width: '100%' }"
+            ></p-chart>
+          </div>
+        } @else {
+          <div class="text-center text-text-muted dark:text-dark-text-muted py-8">
+            <i class="pi pi-chart-bar text-3xl mb-4 block text-slate-400"></i>
+            <p>{{ 'graphiques.noData' | translate }}</p>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Graphique 3 : Camembert dépenses par catégorie -->
+    <div class="bg-surface dark:bg-dark-surface rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 overflow-hidden">
+      <div class="p-6 border-b border-border/50 dark:border-dark-border/50">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30">
+              <i class="pi pi-chart-pie text-purple-600 dark:text-purple-400"></i>
+            </div>
+            <div>
+              <h2 class="text-lg font-semibold text-text-main dark:text-dark-text-main">
+                {{ 'graphiques.expensesByCategory' | translate }}
+              </h2>
+              <p class="text-sm text-text-muted dark:text-dark-text-muted">
+                {{ 'graphiques.expensesByCategoryDesc' | translate }}
+              </p>
+            </div>
+          </div>
+          <!-- Sélecteur du mois pour le camembert -->
+          <div class="flex items-center gap-2">
+            <label class="text-sm font-medium text-text-muted dark:text-dark-text-muted">
+              {{ 'graphiques.selectMonth' | translate }}
+            </label>
+            <p-select
+              [options]="monthSelectOptions"
+              [ngModel]="selectedMonth()"
+              (ngModelChange)="onMonthChange($event)"
+              optionLabel="label"
+              optionValue="value"
+              styleClass="w-52"
+            ></p-select>
+          </div>
+        </div>
+      </div>
+      <div class="p-6">
+        @if (pieChartData()) {
+          <div style="height: 360px;">
+            <p-chart
+              type="doughnut"
+              [data]="pieChartData()"
+              [options]="pieChartOptions"
+              [style]="{ height: '100%', width: '100%' }"
+            ></p-chart>
+          </div>
+        } @else {
+          <div class="text-center text-text-muted dark:text-dark-text-muted py-8">
+            <i class="pi pi-chart-pie text-3xl mb-4 block text-slate-400"></i>
+            <p>{{ 'graphiques.noDataForMonth' | translate }}</p>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>
+
+<p-toast></p-toast>

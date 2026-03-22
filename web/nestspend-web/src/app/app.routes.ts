@@ -65,6 +65,20 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/expense-table/expense-table').then((m) => m.ExpenseTableComponent),
       },
+      // Route vers le tableau de projection annuelle avec cellules éditables (Jan → Déc)
+      {
+        path: 'tableau-projection',
+        loadComponent: () =>
+          import('./pages/tableau-projection/tableau-projection').then(
+            (m) => m.TableauProjectionComponent
+          ),
+      },
+      // Route vers la page de visualisation graphique (courbe épargne, camembert, histogramme)
+      {
+        path: 'graphiques',
+        loadComponent: () =>
+          import('./pages/graphiques/graphiques').then((m) => m.GraphiquesComponent),
+      },
     ],
   },
 ];

@@ -1,0 +1,407 @@
+<div class="max-w-full mx-auto space-y-8">
+  <!-- En-tête avec sélecteur d'année et export -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl lg:text-3xl font-bold text-text-main dark:text-dark-text-main">
+        {{ 'tableauProjection.title' | translate }}
+      </h1>
+      <p class="text-text-muted dark:text-dark-text-muted mt-1">
+        {{ 'tableauProjection.subtitle' | translate }}
+      </p>
+    </div>
+    <div class="flex items-center gap-3 flex-wrap">
+      <!-- Sélecteur d'année -->
+      <label class="text-sm font-medium text-text-muted dark:text-dark-text-muted">
+        {{ 'tableauProjection.year' | translate }}
+      </label>
+      <p-select
+        [options]="yearOptions"
+        [ngModel]="selectedYear()"
+        (ngModelChange)="onYearChange($event)"
+        optionLabel="label"
+        optionValue="value"
+        styleClass="w-28"
+      ></p-select>
+
+      <!-- Bouton export CSV -->
+      <p-button
+        icon="pi pi-download"
+        [label]="'tableauProjection.exportCsv' | translate"
+        severity="secondary"
+        (onClick)="exportCsv()"
+        [pTooltip]="'tableauProjection.exportCsvTooltip' | translate"
+        [disabled]="rows().length === 0"
+      ></p-button>
+    </div>
+  </div>
+
+  <!-- Légende des colonnes -->
+  <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+    <div class="flex items-start gap-3">
+      <i class="pi pi-info-circle text-primary mt-0.5"></i>
+      <div class="text-sm text-text-muted dark:text-dark-text-muted">
+        <p class="font-medium text-text-main dark:text-dark-text-main mb-1">
+          {{ 'tableauProjection.legend' | translate }}
+        </p>
+        <p>{{ 'tableauProjection.legendDesc' | translate }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cartes de résumé annuel -->
+  @if (!loading()) {
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <!-- Revenus réels totaux -->
+      <div class="bg-surface dark:bg-dark-surface p-4 rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50">
+        <p class="text-xs text-text-muted dark:text-dark-text-muted font-medium mb-1">
+          {{ 'tableauProjection.totalIncome' | translate }}
+        </p>
+        <p class="text-lg font-bold text-success">
+          {{ annualTotals().totalActualIncomeEuros | currency:'EUR':'symbol':'1.0-0' }}
+        </p>
+      </div>
+
+      <!-- Total dépenses réelles -->
+      <div class="bg-surface dark:bg-dark-surface p-4 rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50">
+        <p class="text-xs text-text-muted dark:text-dark-text-muted font-medium mb-1">
+          {{ 'tableauProjection.totalExpenses' | translate }}
+        </p>
+        <p class="text-lg font-bold text-danger">
+          {{ annualTotals().totalActualExpensesEuros | currency:'EUR':'symbol':'1.0-0' }}
+        </p>
+      </div>
+
+      <!-- Dépenses fixes prévues -->
+      <div class="bg-surface dark:bg-dark-surface p-4 rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50">
+        <p class="text-xs text-text-muted dark:text-dark-text-muted font-medium mb-1">
+          {{ 'tableauProjection.totalFixed' | translate }}
+        </p>
+        <p class="text-lg font-bold text-text-main dark:text-dark-text-main">
+          {{ annualTotals().totalPlannedFixedExpensesEuros | currency:'EUR':'symbol':'1.0-0' }}
+        </p>
+      </div>
+
+      <!-- Dépenses variables -->
+      <div class="bg-surface dark:bg-dark-surface p-4 rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50">
+        <p class="text-xs text-text-muted dark:text-dark-text-muted font-medium mb-1">
+          {{ 'tableauProjection.totalVariable' | translate }}
+        </p>
+        <p class="text-lg font-bold text-amber-500">
+          {{ annualTotals().totalVariableExpensesEuros | currency:'EUR':'symbol':'1.0-0' }}
+        </p>
+      </div>
+
+      <!-- Épargne totale -->
+      <div
+        class="p-4 rounded-2xl shadow-card dark:shadow-dark-card border"
+        [class.bg-emerald-50]="annualTotals().totalSavingsEuros >= 0"
+        [class.dark:bg-emerald-900/20]="annualTotals().totalSavingsEuros >= 0"
+        [class.border-success]="annualTotals().totalSavingsEuros >= 0"
+        [class.bg-red-50]="annualTotals().totalSavingsEuros < 0"
+        [class.dark:bg-red-900/20]="annualTotals().totalSavingsEuros < 0"
+        [class.border-danger]="annualTotals().totalSavingsEuros < 0"
+      >
+        <p class="text-xs text-text-muted dark:text-dark-text-muted font-medium mb-1">
+          {{ 'tableauProjection.totalSavings' | translate }}
+          @if (annualSavingsRate !== 0) {
+            <span class="ml-1">({{ annualSavingsRate }}%)</span>
+          }
+        </p>
+        <p class="text-lg font-bold" [ngClass]="getSavingsClass(annualTotals().totalSavingsEuros)">
+          {{ annualTotals().totalSavingsEuros | currency:'EUR':'symbol':'1.0-0' }}
+        </p>
+      </div>
+    </div>
+  }
+
+  <!-- Tableau de projection -->
+  <div class="bg-surface dark:bg-dark-surface rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50 overflow-hidden">
+    <div class="p-6 border-b border-border/50 dark:border-dark-border/50">
+      <h2 class="text-lg font-semibold text-text-main dark:text-dark-text-main">
+        {{ 'tableauProjection.tableTitle' | translate }} {{ selectedYear() }}
+      </h2>
+      <p class="text-sm text-text-muted dark:text-dark-text-muted mt-1">
+        {{ 'tableauProjection.tableSubtitle' | translate }}
+      </p>
+    </div>
+
+    <!-- Indicateur de chargement -->
+    @if (loading()) {
+      <div class="flex items-center justify-center py-12">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    } @else {
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse min-w-max">
+          <!-- En-têtes du tableau -->
+          <thead class="bg-slate-50 dark:bg-slate-800/50 border-b border-border/50 dark:border-dark-border/50">
+            <tr>
+              <!-- Colonne Mois -->
+              <th class="text-left px-4 py-3 text-sm font-semibold text-text-muted dark:text-dark-text-muted sticky left-0 bg-slate-50 dark:bg-slate-800/50 z-10 min-w-36">
+                {{ 'tableauProjection.month' | translate }}
+              </th>
+
+              <!-- Revenus (réels ou prévus) -->
+              <th class="text-right px-4 py-3 text-sm font-semibold text-success min-w-36">
+                {{ 'tableauProjection.income' | translate }}
+                <div class="text-xs font-normal text-text-muted dark:text-dark-text-muted">
+                  {{ 'tableauProjection.incomeHint' | translate }}
+                </div>
+              </th>
+
+              <!-- Dépenses fixes prévues (éditable) -->
+              <th class="text-right px-4 py-3 text-sm font-semibold text-primary min-w-36">
+                {{ 'tableauProjection.fixedExpenses' | translate }}
+                <div class="text-xs font-normal text-text-muted dark:text-dark-text-muted">
+                  {{ 'tableauProjection.fixedHint' | translate }}
+                </div>
+              </th>
+
+              <!-- Dépenses variables -->
+              <th class="text-right px-4 py-3 text-sm font-semibold text-amber-600 dark:text-amber-400 min-w-36">
+                {{ 'tableauProjection.variableExpenses' | translate }}
+              </th>
+
+              <!-- Total dépenses réelles -->
+              <th class="text-right px-4 py-3 text-sm font-semibold text-danger min-w-36">
+                {{ 'tableauProjection.totalExpenses' | translate }}
+              </th>
+
+              <!-- Épargne -->
+              <th class="text-right px-4 py-3 text-sm font-semibold text-text-main dark:text-dark-text-main bg-blue-50 dark:bg-blue-900/20 min-w-36">
+                {{ 'tableauProjection.savings' | translate }}
+              </th>
+
+              <!-- Statut -->
+              <th class="text-center px-4 py-3 text-sm font-semibold text-text-muted dark:text-dark-text-muted min-w-24">
+                {{ 'tableauProjection.status' | translate }}
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (row of rows(); track row.month) {
+              <tr class="border-b border-border/30 dark:border-dark-border/30 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+
+                <!-- Mois -->
+                <td class="px-4 py-3 sticky left-0 bg-surface dark:bg-dark-surface z-10">
+                  <div class="flex items-center gap-2">
+                    @if (row.loading) {
+                      <div class="animate-spin rounded-full h-3 w-3 border-b border-primary flex-shrink-0"></div>
+                    } @else if (row.error) {
+                      <i class="pi pi-exclamation-triangle text-warning text-xs flex-shrink-0"
+                        [pTooltip]="'tableauProjection.loadError' | translate"></i>
+                    } @else if (row.hasRealData) {
+                      <i class="pi pi-check-circle text-success text-xs flex-shrink-0"
+                        [pTooltip]="'tableauProjection.realData' | translate"></i>
+                    } @else {
+                      <i class="pi pi-clock text-text-muted text-xs flex-shrink-0"
+                        [pTooltip]="'tableauProjection.plannedData' | translate"></i>
+                    }
+                    <span class="text-sm font-medium text-text-main dark:text-dark-text-main">
+                      {{ row.monthLabel }}
+                    </span>
+                  </div>
+                </td>
+
+                <!-- Revenus (éditables) -->
+                <td class="px-4 py-3 text-right">
+                  @if (isEditingIncome(row.month)) {
+                    <!-- Champ de saisie pour le revenu prévu -->
+                    <div class="flex items-center gap-1 justify-end">
+                      <p-inputnumber
+                        [(ngModel)]="editingIncomeValue"
+                        mode="currency"
+                        currency="EUR"
+                        locale="fr-BE"
+                        [min]="0"
+                        [inputStyle]="{ width: '110px', textAlign: 'right', fontSize: '0.8rem', padding: '0.25rem 0.5rem' }"
+                        (keydown)="onKeyDown($event, row)"
+                      ></p-inputnumber>
+                      <button class="text-success hover:text-emerald-700 p-1" (click)="saveEdit(row)"
+                        [pTooltip]="'tableauProjection.save' | translate">
+                        <i class="pi pi-check text-xs"></i>
+                      </button>
+                      <button class="text-danger hover:text-red-700 p-1" (click)="cancelEdit()"
+                        [pTooltip]="'tableauProjection.cancel' | translate">
+                        <i class="pi pi-times text-xs"></i>
+                      </button>
+                    </div>
+                  } @else {
+                    <!-- Affichage de la valeur avec bouton d'édition -->
+                    <div class="flex items-center justify-end gap-1 group cursor-pointer" (click)="startEditIncome(row)">
+                      <span class="text-sm font-medium" [class.text-success]="row.hasRealData && row.actualIncomeEuros > 0">
+                        @if (row.hasRealData) {
+                          {{ row.actualIncomeEuros | currency:'EUR' }}
+                        } @else {
+                          <span class="text-text-muted dark:text-dark-text-muted">
+                            {{ row.plannedIncomeEuros > 0 ? (row.plannedIncomeEuros | currency:'EUR') : ('tableauProjection.clickToEdit' | translate) }}
+                          </span>
+                        }
+                      </span>
+                      @if (!row.hasRealData) {
+                        <i class="pi pi-pencil text-xs text-text-muted opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                      }
+                    </div>
+                  }
+                </td>
+
+                <!-- Dépenses fixes prévues (éditables) -->
+                <td class="px-4 py-3 text-right">
+                  @if (isEditingFixed(row.month)) {
+                    <!-- Champ de saisie pour les dépenses fixes -->
+                    <div class="flex items-center gap-1 justify-end">
+                      <p-inputnumber
+                        [(ngModel)]="editingFixedValue"
+                        mode="currency"
+                        currency="EUR"
+                        locale="fr-BE"
+                        [min]="0"
+                        [inputStyle]="{ width: '110px', textAlign: 'right', fontSize: '0.8rem', padding: '0.25rem 0.5rem' }"
+                        (keydown)="onKeyDown($event, row)"
+                      ></p-inputnumber>
+                      <button class="text-success hover:text-emerald-700 p-1" (click)="saveEdit(row)"
+                        [pTooltip]="'tableauProjection.save' | translate">
+                        <i class="pi pi-check text-xs"></i>
+                      </button>
+                      <button class="text-danger hover:text-red-700 p-1" (click)="cancelEdit()"
+                        [pTooltip]="'tableauProjection.cancel' | translate">
+                        <i class="pi pi-times text-xs"></i>
+                      </button>
+                    </div>
+                  } @else {
+                    <!-- Affichage de la valeur avec bouton d'édition -->
+                    <div class="flex items-center justify-end gap-1 group cursor-pointer" (click)="startEditFixed(row)">
+                      <span class="text-sm font-medium text-primary">
+                        {{ row.plannedFixedExpensesEuros > 0 ? (row.plannedFixedExpensesEuros | currency:'EUR') : ('tableauProjection.clickToEdit' | translate) }}
+                      </span>
+                      <i class="pi pi-pencil text-xs text-text-muted opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                    </div>
+                  }
+                </td>
+
+                <!-- Dépenses variables (calculées) -->
+                <td class="px-4 py-3 text-right">
+                  @if (row.hasRealData && row.variableExpensesEuros > 0) {
+                    <span class="text-sm font-medium text-amber-600 dark:text-amber-400">
+                      {{ row.variableExpensesEuros | currency:'EUR' }}
+                    </span>
+                  } @else {
+                    <span class="text-text-muted/40 dark:text-dark-text-muted/40 text-sm">-</span>
+                  }
+                </td>
+
+                <!-- Total dépenses réelles -->
+                <td class="px-4 py-3 text-right">
+                  @if (row.hasRealData && row.actualExpensesEuros > 0) {
+                    <span class="text-sm font-semibold text-danger">
+                      {{ row.actualExpensesEuros | currency:'EUR' }}
+                    </span>
+                  } @else {
+                    <span class="text-text-muted/40 dark:text-dark-text-muted/40 text-sm">-</span>
+                  }
+                </td>
+
+                <!-- Épargne avec barre de taux -->
+                <td class="px-4 py-3 text-right bg-blue-50/30 dark:bg-blue-900/10">
+                  @if (row.savingsEuros !== 0 || row.hasRealData) {
+                    <div class="flex flex-col items-end gap-1">
+                      <span class="text-sm" [ngClass]="getSavingsClass(row.savingsEuros)">
+                        {{ row.savingsEuros | currency:'EUR' }}
+                      </span>
+                      @if (getSavingsRate(row) !== 0) {
+                        <span class="text-xs text-text-muted dark:text-dark-text-muted">
+                          {{ getSavingsRate(row) }}%
+                        </span>
+                      }
+                    </div>
+                  } @else {
+                    <span class="text-text-muted/40 dark:text-dark-text-muted/40 text-sm">-</span>
+                  }
+                </td>
+
+                <!-- Statut : données réelles ou prévisionnelles -->
+                <td class="text-center px-4 py-3">
+                  @if (row.loading) {
+                    <span class="text-xs text-text-muted dark:text-dark-text-muted">
+                      {{ 'tableauProjection.loading' | translate }}
+                    </span>
+                  } @else if (row.error) {
+                    <span class="px-2 py-1 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-danger">
+                      {{ 'tableauProjection.error' | translate }}
+                    </span>
+                  } @else if (row.hasRealData) {
+                    <span class="px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-success">
+                      {{ 'tableauProjection.real' | translate }}
+                    </span>
+                  } @else {
+                    <span class="px-2 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-text-muted dark:text-dark-text-muted">
+                      {{ 'tableauProjection.planned' | translate }}
+                    </span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+
+          <!-- Ligne de total annuel -->
+          <tfoot class="bg-slate-100 dark:bg-slate-700/60 border-t-2 border-border dark:border-dark-border font-bold">
+            <tr>
+              <td class="px-4 py-3 sticky left-0 bg-slate-100 dark:bg-slate-700/60 z-10">
+                <span class="text-sm font-bold text-text-main dark:text-dark-text-main uppercase tracking-wide">
+                  {{ 'tableauProjection.annualTotal' | translate }}
+                </span>
+              </td>
+
+              <!-- Total revenus réels -->
+              <td class="px-4 py-3 text-right">
+                <span class="text-sm font-bold text-success">
+                  {{ annualTotals().totalActualIncomeEuros | currency:'EUR' }}
+                </span>
+              </td>
+
+              <!-- Total dépenses fixes prévues -->
+              <td class="px-4 py-3 text-right">
+                <span class="text-sm font-bold text-primary">
+                  {{ annualTotals().totalPlannedFixedExpensesEuros | currency:'EUR' }}
+                </span>
+              </td>
+
+              <!-- Total dépenses variables -->
+              <td class="px-4 py-3 text-right">
+                <span class="text-sm font-bold text-amber-600 dark:text-amber-400">
+                  {{ annualTotals().totalVariableExpensesEuros | currency:'EUR' }}
+                </span>
+              </td>
+
+              <!-- Total dépenses réelles -->
+              <td class="px-4 py-3 text-right">
+                <span class="text-sm font-bold text-danger">
+                  {{ annualTotals().totalActualExpensesEuros | currency:'EUR' }}
+                </span>
+              </td>
+
+              <!-- Total épargne -->
+              <td class="px-4 py-3 text-right bg-blue-100/50 dark:bg-blue-900/20">
+                <span class="text-sm font-bold" [ngClass]="getSavingsClass(annualTotals().totalSavingsEuros)">
+                  {{ annualTotals().totalSavingsEuros | currency:'EUR' }}
+                </span>
+              </td>
+
+              <!-- Taux d'épargne annuel -->
+              <td class="px-4 py-3 text-center">
+                @if (annualSavingsRate !== 0) {
+                  <span class="text-sm font-bold" [ngClass]="getSavingsClass(annualSavingsRate)">
+                    {{ annualSavingsRate }}%
+                  </span>
+                }
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    }
+  </div>
+</div>
+
+<p-toast></p-toast>

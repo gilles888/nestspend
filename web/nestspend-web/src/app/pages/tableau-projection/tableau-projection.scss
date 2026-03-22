@@ -1,0 +1,21 @@
+// Styles du tableau de projection annuelle
+:host {
+  display: block;
+}
+
+// Tableau style tableur avec colonnes collantes
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+
+  td,
+  th {
+    white-space: nowrap;
+  }
+}
+
+// Amélioration de la lisibilité des cellules éditables
+.cursor-pointer:hover {
+  background-color: rgba(59, 130, 246, 0.05);
+  border-radius: 4px;
+}

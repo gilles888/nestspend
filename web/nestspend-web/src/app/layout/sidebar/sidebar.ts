@@ -27,6 +27,10 @@ export class SidebarComponent {
     { labelKey: 'nav.budgets', icon: 'pi pi-chart-bar', route: '/budgets' },
     // Lien vers le tableau de projection des dépenses mensuel/annuel
     { labelKey: 'nav.expenseTable', icon: 'pi pi-table', route: '/expense-table' },
+    // Lien vers le tableau de projection annuelle avec cellules éditables
+    { labelKey: 'nav.tableauProjection', icon: 'pi pi-calendar', route: '/tableau-projection' },
+    // Lien vers la page de visualisation graphique
+    { labelKey: 'nav.graphiques', icon: 'pi pi-chart-pie', route: '/graphiques' },
     { labelKey: 'nav.transactions', icon: 'pi pi-list', route: '/transactions' },
     { labelKey: 'nav.categories', icon: 'pi pi-tags', route: '/categories' },
     { labelKey: 'nav.classificationRules', icon: 'pi pi-cog', route: '/classification-rules' },
