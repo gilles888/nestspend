@@ -2,6 +2,7 @@ package be.gilmotech.nestspend.service;
 
 import be.gilmotech.nestspend.domain.entity.Category;
 import be.gilmotech.nestspend.domain.entity.Household;
+import be.gilmotech.nestspend.domain.repository.BudgetRepository;
 import be.gilmotech.nestspend.domain.repository.CategoryRepository;
 import be.gilmotech.nestspend.domain.repository.HouseholdRepository;
 import be.gilmotech.nestspend.domain.repository.TransactionRepository;
@@ -26,6 +27,7 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
     private final HouseholdRepository householdRepository;
     private final TransactionRepository transactionRepository;
+    private final BudgetRepository budgetRepository;
     private final CurrentUserService currentUserService;
 
     /**
@@ -49,10 +51,12 @@ public class CategoryService {
     public CategoryService(CategoryRepository categoryRepository,
                            HouseholdRepository householdRepository,
                            TransactionRepository transactionRepository,
+                           BudgetRepository budgetRepository,
                            CurrentUserService currentUserService) {
         this.categoryRepository = categoryRepository;
         this.householdRepository = householdRepository;
         this.transactionRepository = transactionRepository;
+        this.budgetRepository = budgetRepository;
         this.currentUserService = currentUserService;
     }
 
@@ -180,6 +184,15 @@ public class CategoryService {
                     "Impossible de supprimer la catégorie '" + category.getName() + "' : "
                     + transactionCount + " transaction(s) y sont rattachées. "
                     + "Reassignez les transactions à une autre catégorie avant de supprimer celle-ci.");
+        }
+
+        // Vérifie si des budgets référencent cette catégorie avant la suppression
+        long budgetCount = budgetRepository.countByCategoryId(id);
+        if (budgetCount > 0) {
+            throw new ResourceConflictException(
+                    "Impossible de supprimer la catégorie '" + category.getName() + "' : "
+                    + budgetCount + " budget(s) y sont rattachés. "
+                    + "Supprimez les budgets associés avant de supprimer cette catégorie.");
         }
 
         categoryRepository.delete(category);

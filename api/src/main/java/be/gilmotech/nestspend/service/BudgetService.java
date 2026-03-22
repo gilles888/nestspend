@@ -8,6 +8,7 @@ import be.gilmotech.nestspend.domain.repository.CategoryRepository;
 import be.gilmotech.nestspend.domain.repository.HouseholdRepository;
 import be.gilmotech.nestspend.domain.repository.TransactionRepository;
 import be.gilmotech.nestspend.dto.budget.BudgetCreateRequest;
+import be.gilmotech.nestspend.dto.budget.BudgetCopyResponse;
 import be.gilmotech.nestspend.dto.budget.BudgetResponse;
 import be.gilmotech.nestspend.dto.budget.BudgetSummaryResponse;
 import be.gilmotech.nestspend.dto.budget.BudgetUpdateRequest;
@@ -21,6 +22,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -194,6 +196,74 @@ public class BudgetService {
                 .orElseThrow(() -> new ResourceNotFoundException("Budget non trouvé : " + id));
 
         budgetRepository.delete(budget);
+    }
+
+    /**
+     * Copie les budgets d'un mois source vers un mois cible.
+     * Les budgets qui existent déjà dans le mois cible sont ignorés (pas de doublon).
+     * La catégorie et le montant sont copiés à l'identique.
+     *
+     * @param fromMonth le mois source au format YYYY-MM
+     * @param toMonth   le mois cible au format YYYY-MM
+     * @return un résumé indiquant le nombre de budgets copiés et ignorés
+     * @throws IllegalArgumentException si les formats de mois sont invalides ou si les mois sont identiques
+     */
+    @Transactional
+    public BudgetCopyResponse copyBudgets(String fromMonth, String toMonth) {
+        validerFormatMois(fromMonth);
+        validerFormatMois(toMonth);
+
+        if (fromMonth.equals(toMonth)) {
+            throw new IllegalArgumentException(
+                    "Le mois source et le mois cible doivent être différents");
+        }
+
+        UUID householdId = currentUserService.getCurrentHouseholdId();
+
+        // Récupère tous les budgets du mois source
+        List<Budget> sourceBudgets = budgetRepository.findByHouseholdIdAndMonth(householdId, fromMonth);
+
+        if (sourceBudgets.isEmpty()) {
+            return new BudgetCopyResponse(fromMonth, toMonth, 0, 0,
+                    "Aucun budget trouvé pour le mois source " + fromMonth);
+        }
+
+        int copiedCount = 0;
+        int skippedCount = 0;
+        List<BudgetResponse> copiedBudgets = new ArrayList<>();
+
+        // Calcul de la plage de dates pour le mois cible (pour calculer les dépenses réelles)
+        YearMonth targetYearMonth = YearMonth.parse(toMonth, MONTH_FORMATTER);
+        LocalDate targetStart = targetYearMonth.atDay(1);
+        LocalDate targetEnd = targetYearMonth.atEndOfMonth();
+
+        for (Budget source : sourceBudgets) {
+            // Vérifie si un budget existe déjà pour cette catégorie dans le mois cible
+            boolean alreadyExists = budgetRepository.existsByHouseholdIdAndCategoryIdAndMonth(
+                    householdId, source.getCategory().getId(), toMonth);
+
+            if (alreadyExists) {
+                skippedCount++;
+                continue;
+            }
+
+            // Crée le nouveau budget pour le mois cible
+            Budget newBudget = Budget.builder()
+                    .household(source.getHousehold())
+                    .category(source.getCategory())
+                    .month(toMonth)
+                    .amountCents(source.getAmountCents())
+                    .build();
+
+            newBudget = budgetRepository.save(newBudget);
+            copiedBudgets.add(toBudgetResponseWithSpent(newBudget, householdId, targetStart, targetEnd));
+            copiedCount++;
+        }
+
+        String message = copiedCount + " budget(s) copié(s) depuis " + fromMonth + " vers " + toMonth
+                + (skippedCount > 0 ? " (" + skippedCount + " ignoré(s) car déjà existant(s))" : "");
+
+        return new BudgetCopyResponse(fromMonth, toMonth, copiedCount, skippedCount, message);
     }
 
     /**

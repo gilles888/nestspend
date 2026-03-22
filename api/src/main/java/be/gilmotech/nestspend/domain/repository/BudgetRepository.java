@@ -44,6 +44,7 @@ public interface BudgetRepository extends JpaRepository<Budget, UUID> {
 
     /**
      * Récupère tous les budgets d'un foyer pour une année donnée (tous les mois).
+     * Utilise CONCAT pour construire le pattern LIKE de façon compatible H2 et PostgreSQL.
      * Triés par mois puis par catégorie.
      *
      * @param householdId l'identifiant du foyer
@@ -51,12 +52,21 @@ public interface BudgetRepository extends JpaRepository<Budget, UUID> {
      * @return liste des budgets de l'année
      */
     @Query("SELECT b FROM Budget b JOIN FETCH b.category " +
-           "WHERE b.household.id = :householdId AND b.month LIKE :yearPrefix% " +
+           "WHERE b.household.id = :householdId AND b.month LIKE CONCAT(:yearPrefix, '%') " +
            "ORDER BY b.month ASC, b.category.name ASC")
     List<Budget> findByHouseholdIdAndYear(
             @Param("householdId") UUID householdId,
             @Param("yearPrefix") String yearPrefix
     );
+
+    /**
+     * Compte le nombre de budgets référençant une catégorie spécifique.
+     * Utilisé pour empêcher la suppression d'une catégorie encore utilisée dans un budget.
+     *
+     * @param categoryId l'identifiant de la catégorie
+     * @return le nombre de budgets liés à cette catégorie
+     */
+    long countByCategoryId(UUID categoryId);
 
     /**
      * Vérifie si un budget existe déjà pour une catégorie et un mois donnés (contrainte d'unicité).

@@ -1,5 +1,6 @@
 package be.gilmotech.nestspend.controller;
 
+import be.gilmotech.nestspend.dto.budget.BudgetCopyResponse;
 import be.gilmotech.nestspend.dto.budget.BudgetCreateRequest;
 import be.gilmotech.nestspend.dto.budget.BudgetResponse;
 import be.gilmotech.nestspend.dto.budget.BudgetSummaryResponse;
@@ -143,5 +144,29 @@ public class BudgetController {
     ) {
         budgetService.deleteBudget(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/copy")
+    @Operation(
+            summary = "Copier les budgets d'un mois vers un autre",
+            description = "Copie tous les budgets du mois source vers le mois cible. " +
+                    "Les budgets qui existent déjà dans le mois cible ne sont pas écrasés (ignorés). " +
+                    "Utile pour reconduire les budgets d'un mois à l'autre sans tout reconfigurer."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Copie effectuée avec succès"),
+            @ApiResponse(responseCode = "400", description = "Format de mois invalide ou mois identiques",
+                    content = @Content(schema = @Schema(hidden = true))),
+            @ApiResponse(responseCode = "401", description = "Token JWT manquant ou invalide",
+                    content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<BudgetCopyResponse> copyBudgets(
+            @Parameter(description = "Mois source au format YYYY-MM", example = "2025-02", required = true)
+            @RequestParam String fromMonth,
+            @Parameter(description = "Mois cible au format YYYY-MM", example = "2025-03", required = true)
+            @RequestParam String toMonth
+    ) {
+        BudgetCopyResponse result = budgetService.copyBudgets(fromMonth, toMonth);
+        return ResponseEntity.ok(result);
     }
 }

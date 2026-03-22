@@ -29,10 +29,14 @@ spring:
     hibernate:
       # En production, Flyway gère le schéma - DDL auto doit être "validate" uniquement
       ddl-auto: validate
+    # Désactivation de open-in-view : évite les requêtes DB pendant le rendu de la vue
+    # (bonne pratique pour une API REST stateless avec transactions bien délimitées)
+    open-in-view: false
     properties:
       hibernate:
-        # Dialecte PostgreSQL (détection automatique via driver, mais explicite pour clarté)
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+        # NOTE : Le dialecte PostgreSQL N'EST PAS spécifié ici intentionnellement.
+        # Hibernate 6+ détecte automatiquement le dialecte via le driver JDBC.
+        # Spécifier PostgreSQLDialect explicitement génère un avertissement de dépréciation (HHH90000025).
         format_sql: false
         jdbc:
           time_zone: UTC
@@ -52,6 +56,11 @@ spring:
     clean-disabled: true
     # Schéma cible
     default-schema: public
+    # NOTE : PostgreSQL 18 est plus récent que la version officiellement testée par Flyway.
+    # Flyway affiche un avertissement "upgrade recommended" mais fonctionne correctement.
+    # La compatibilité ascendante de PostgreSQL garantit que toutes les migrations SQL standard
+    # s'exécutent sans modification. Mettre à jour flyway-core quand une version supportant PG18
+    # sera disponible via Spring Boot BOM.
 
   # Désactivation de la console H2 en production
   h2:

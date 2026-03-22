@@ -5,7 +5,9 @@ import be.gilmotech.nestspend.domain.enums.TransactionType;
 import be.gilmotech.nestspend.domain.repository.FutureEventRepository;
 import be.gilmotech.nestspend.domain.repository.TransactionRepository;
 import be.gilmotech.nestspend.dto.projection.AnnualProjectionResponse;
+import be.gilmotech.nestspend.dto.projection.AnnualSavingsResponse;
 import be.gilmotech.nestspend.dto.projection.MonthlyExpenseProjection;
+import be.gilmotech.nestspend.dto.projection.MonthlySavingsProjection;
 import be.gilmotech.nestspend.security.CurrentUserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,13 @@ import java.util.UUID;
  * Service de projection des dépenses mensuelles et annuelles.
  * Combine les données réelles des transactions passées avec les événements futurs
  * planifiés pour produire une vision complète de l'année.
+ *
+ * <p>Règle de calcul selon le mois :</p>
+ * <ul>
+ *   <li>Mois passé : données réelles des transactions uniquement.</li>
+ *   <li>Mois courant : données réelles des transactions + contribution des événements futurs.</li>
+ *   <li>Mois futur : projection basée sur les événements récurrents planifiés uniquement.</li>
+ * </ul>
  */
 @Service
 public class ProjectionService {
@@ -31,13 +40,16 @@ public class ProjectionService {
     private final TransactionRepository transactionRepository;
     private final FutureEventRepository futureEventRepository;
     private final CurrentUserService currentUserService;
+    private final ProjectionHelper projectionHelper;
 
     public ProjectionService(TransactionRepository transactionRepository,
                              FutureEventRepository futureEventRepository,
-                             CurrentUserService currentUserService) {
+                             CurrentUserService currentUserService,
+                             ProjectionHelper projectionHelper) {
         this.transactionRepository = transactionRepository;
         this.futureEventRepository = futureEventRepository;
         this.currentUserService = currentUserService;
+        this.projectionHelper = projectionHelper;
     }
 
     /**
@@ -52,21 +64,13 @@ public class ProjectionService {
      */
     @Transactional(readOnly = true)
     public AnnualProjectionResponse getAnnualProjection(int year) {
-        int currentYear = Year.now().getValue();
-        if (year < 2000 || year > currentYear + 10) {
-            throw new IllegalArgumentException(
-                    "Année invalide : " + year + ". Doit être comprise entre 2000 et " + (currentYear + 10));
-        }
+        validerAnnee(year);
 
         UUID householdId = currentUserService.getCurrentHouseholdId();
-        LocalDate today = LocalDate.now();
-        YearMonth currentMonth = YearMonth.from(today);
+        YearMonth currentMonth = YearMonth.from(LocalDate.now());
 
         // Récupère les événements futurs actifs pour l'année complète
-        LocalDate yearStart = LocalDate.of(year, 1, 1);
-        LocalDate yearEnd = LocalDate.of(year, 12, 31);
-        List<FutureEvent> futureEvents = futureEventRepository.findActiveEventsInRange(
-                householdId, yearStart, yearEnd);
+        List<FutureEvent> futureEvents = chargerEvenementsFuturs(householdId, year);
 
         List<MonthlyExpenseProjection> months = new ArrayList<>(12);
         long totalActualIncome = 0L;
@@ -86,49 +90,49 @@ public class ProjectionService {
 
             if (ym.isBefore(currentMonth)) {
                 // Mois passé : données réelles uniquement
-                Long rawIncome = transactionRepository.sumAmountByHouseholdAndTypeAndDateRange(
-                        householdId, TransactionType.INCOME, monthStart, monthEnd);
-                Long rawExpenses = transactionRepository.sumAmountByHouseholdAndTypeAndDateRange(
-                        householdId, TransactionType.EXPENSE, monthStart, monthEnd);
-
-                income = rawIncome != null ? rawIncome : 0L;
-                expenses = rawExpenses != null ? rawExpenses : 0L;
+                income = sommerTransactions(householdId, TransactionType.INCOME, monthStart, monthEnd);
+                expenses = sommerTransactions(householdId, TransactionType.EXPENSE, monthStart, monthEnd);
                 isActual = true;
 
                 totalActualIncome += income;
                 totalActualExpenses += expenses;
+                totalProjectedIncome += income;
+                totalProjectedExpenses += expenses;
+
             } else if (ym.equals(currentMonth)) {
-                // Mois courant : données réelles jusqu'à aujourd'hui + projection des événements futurs
-                Long rawIncome = transactionRepository.sumAmountByHouseholdAndTypeAndDateRange(
-                        householdId, TransactionType.INCOME, monthStart, monthEnd);
-                Long rawExpenses = transactionRepository.sumAmountByHouseholdAndTypeAndDateRange(
-                        householdId, TransactionType.EXPENSE, monthStart, monthEnd);
+                // Mois courant : données réelles + projection des événements futurs
+                long actualIncome = sommerTransactions(householdId, TransactionType.INCOME, monthStart, monthEnd);
+                long actualExpenses = sommerTransactions(householdId, TransactionType.EXPENSE, monthStart, monthEnd);
 
-                income = rawIncome != null ? rawIncome : 0L;
-                expenses = rawExpenses != null ? rawExpenses : 0L;
-
-                // Ajout des événements futurs pour le mois courant
+                // Contribution des événements futurs pour le mois courant
+                long futureIncome = 0L;
+                long futureExpenses = 0L;
                 for (FutureEvent event : futureEvents) {
-                    long occurrences = countOccurrencesInMonth(event, ym);
+                    long occurrences = projectionHelper.countOccurrencesInMonth(event, ym);
                     long amount = event.getAmountCents() * occurrences;
                     if (event.getType() == TransactionType.INCOME) {
-                        income += amount;
+                        futureIncome += amount;
                     } else {
-                        expenses += amount;
+                        futureExpenses += amount;
                     }
                 }
 
-                isActual = false; // Mois en cours : données mixtes
+                income = actualIncome + futureIncome;
+                expenses = actualExpenses + futureExpenses;
+                isActual = false; // Données mixtes : réelles + projetées
 
-                totalActualIncome += rawIncome != null ? rawIncome : 0L;
-                totalActualExpenses += rawExpenses != null ? rawExpenses : 0L;
+                totalActualIncome += actualIncome;
+                totalActualExpenses += actualExpenses;
+                totalProjectedIncome += income;
+                totalProjectedExpenses += expenses;
+
             } else {
-                // Mois futur : projection basée sur les événements planifiés
+                // Mois futur : projection basée sur les événements planifiés uniquement
                 income = 0L;
                 expenses = 0L;
 
                 for (FutureEvent event : futureEvents) {
-                    long occurrences = countOccurrencesInMonth(event, ym);
+                    long occurrences = projectionHelper.countOccurrencesInMonth(event, ym);
                     long amount = event.getAmountCents() * occurrences;
                     if (event.getType() == TransactionType.INCOME) {
                         income += amount;
@@ -138,10 +142,9 @@ public class ProjectionService {
                 }
 
                 isActual = false;
+                totalProjectedIncome += income;
+                totalProjectedExpenses += expenses;
             }
-
-            totalProjectedIncome += income;
-            totalProjectedExpenses += expenses;
 
             months.add(new MonthlyExpenseProjection(
                     monthLabel,
@@ -164,38 +167,99 @@ public class ProjectionService {
     }
 
     /**
-     * Compte le nombre d'occurrences d'un événement futur dans un mois donné.
-     * Identique à la logique de FutureEventService pour assurer la cohérence.
+     * Génère la projection mensuelle détaillée pour une année donnée.
+     * Alias vers {@link #getAnnualProjection(int)} — expose les mêmes données
+     * sous un endpoint dédié pour la clarté de l'API.
+     *
+     * @param year l'année à projeter
+     * @return la projection annuelle avec les 12 mois
      */
-    private long countOccurrencesInMonth(FutureEvent event, YearMonth month) {
-        LocalDate monthStart = month.atDay(1);
-        LocalDate monthEnd = month.atEndOfMonth();
+    @Transactional(readOnly = true)
+    public AnnualProjectionResponse getMonthlyProjection(int year) {
+        // La logique est identique à la projection annuelle :
+        // les deux retournent les 12 mois avec données réelles/projetées.
+        return getAnnualProjection(year);
+    }
 
-        if (event.getStartDate().isAfter(monthEnd)) {
-            return 0;
-        }
-        if (event.getEndDate() != null && event.getEndDate().isBefore(monthStart)) {
-            return 0;
+    /**
+     * Calcule l'épargne mois par mois et le cumul pour une année donnée.
+     * L'épargne d'un mois = revenus - dépenses.
+     * Le cumul représente la somme des épargnes depuis janvier.
+     *
+     * @param year l'année cible
+     * @return la projection d'épargne annuelle avec cumul mensuel
+     * @throws IllegalArgumentException si l'année est invalide
+     */
+    @Transactional(readOnly = true)
+    public AnnualSavingsResponse getSavingsProjection(int year) {
+        validerAnnee(year);
+
+        // Réutilise la logique de projection annuelle pour obtenir les données de base
+        AnnualProjectionResponse annualProjection = getAnnualProjection(year);
+
+        List<MonthlySavingsProjection> savingsMonths = new ArrayList<>(12);
+        long cumulativeSavings = 0L;
+        long totalActualSavings = 0L;
+        long totalProjectedSavings = 0L;
+
+        for (MonthlyExpenseProjection month : annualProjection.months()) {
+            long monthlySavings = month.netCents(); // revenus - dépenses
+            cumulativeSavings += monthlySavings;
+            totalProjectedSavings += monthlySavings;
+
+            if (month.isActual()) {
+                totalActualSavings += monthlySavings;
+            }
+
+            savingsMonths.add(new MonthlySavingsProjection(
+                    month.month(),
+                    month.incomeCents(),
+                    month.expenseCents(),
+                    monthlySavings,
+                    cumulativeSavings,
+                    month.isActual()
+            ));
         }
 
-        return switch (event.getPeriodicity()) {
-            case WEEKLY -> {
-                LocalDate effectiveStart = event.getStartDate().isBefore(monthStart)
-                        ? monthStart : event.getStartDate();
-                LocalDate effectiveEnd = event.getEndDate() != null && event.getEndDate().isBefore(monthEnd)
-                        ? event.getEndDate() : monthEnd;
-                long days = effectiveStart.until(effectiveEnd, java.time.temporal.ChronoUnit.DAYS) + 1;
-                yield (days + 6) / 7;
-            }
-            case MONTHLY -> 1;
-            case QUARTERLY -> {
-                int eventMonth = event.getStartDate().getMonthValue();
-                int currentMonthVal = month.getMonthValue();
-                int diff = (currentMonthVal - eventMonth + 12) % 12;
-                yield (diff % 3 == 0) ? 1 : 0;
-            }
-            case YEARLY ->
-                    (event.getStartDate().getMonthValue() == month.getMonthValue()) ? 1 : 0;
-        };
+        return new AnnualSavingsResponse(
+                year,
+                totalActualSavings,
+                totalProjectedSavings,
+                savingsMonths
+        );
+    }
+
+    /**
+     * Charge les événements futurs actifs pour une année donnée.
+     */
+    private List<FutureEvent> chargerEvenementsFuturs(UUID householdId, int year) {
+        LocalDate yearStart = LocalDate.of(year, 1, 1);
+        LocalDate yearEnd = LocalDate.of(year, 12, 31);
+        return futureEventRepository.findActiveEventsInRange(householdId, yearStart, yearEnd);
+    }
+
+    /**
+     * Somme les montants des transactions d'un type donné pour le foyer et la plage de dates.
+     * Retourne 0 si aucune transaction n'existe (protège contre les null JPQL).
+     */
+    private long sommerTransactions(UUID householdId, TransactionType type,
+                                    LocalDate start, LocalDate end) {
+        Long result = transactionRepository.sumAmountByHouseholdAndTypeAndDateRange(
+                householdId, type, start, end);
+        return result != null ? result : 0L;
+    }
+
+    /**
+     * Valide que l'année est dans une plage raisonnable.
+     *
+     * @param year l'année à valider
+     * @throws IllegalArgumentException si l'année est hors plage
+     */
+    private void validerAnnee(int year) {
+        int currentYear = Year.now().getValue();
+        if (year < 2000 || year > currentYear + 10) {
+            throw new IllegalArgumentException(
+                    "Année invalide : " + year + ". Doit être comprise entre 2000 et " + (currentYear + 10));
+        }
     }
 }
