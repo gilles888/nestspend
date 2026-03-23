@@ -26,9 +26,11 @@ import {
   DepenseType,
   ResumeFinancier,
   ProjectionAnnuelle,
-  CategorieDepense,
+  SalaireEntry,
   FrequenceDepense,
 } from '../../core/models/mois-type.model';
+import { CategoriesService } from '../../core/api/services/categories.service';
+import { CategoryResponse } from '../../core/api/models/category-response';
 
 /** Noms des mois en français pour l'affichage */
 const NOMS_MOIS = [
@@ -198,17 +200,23 @@ export class MoisTypeComponent implements OnInit, OnDestroy {
     },
   };
 
-  /** Options de catégories pour les sélecteurs */
-  readonly categorieOptions: { label: string; value: CategorieDepense }[] = [
-    { label: 'Logement', value: 'LOGEMENT' },
-    { label: 'Transport', value: 'TRANSPORT' },
-    { label: 'Alimentation', value: 'ALIMENTATION' },
-    { label: 'Santé', value: 'SANTE' },
-    { label: 'Loisirs', value: 'LOISIRS' },
-    { label: 'Abonnements', value: 'ABONNEMENTS' },
-    { label: 'Épargne', value: 'EPARGNE' },
-    { label: 'Autre', value: 'AUTRE' },
+  /**
+   * Catégories par défaut utilisées comme fallback si l'API est indisponible
+   * ou retourne une liste vide.
+   */
+  private readonly categoriesParDefaut: { label: string; value: string }[] = [
+    { label: 'Logement', value: 'Logement' },
+    { label: 'Transport', value: 'Transport' },
+    { label: 'Alimentation', value: 'Alimentation' },
+    { label: 'Santé', value: 'Santé' },
+    { label: 'Loisirs', value: 'Loisirs' },
+    { label: 'Abonnements', value: 'Abonnements' },
+    { label: 'Épargne', value: 'Épargne' },
+    { label: 'Autre', value: 'Autre' },
   ];
+
+  /** Options de catégories pour les sélecteurs — chargées depuis l'API au démarrage */
+  categorieOptions = signal<{ label: string; value: string }[]>(this.categoriesParDefaut);
 
   /** Options de fréquence pour les sélecteurs */
   readonly frequenceOptions: { label: string; value: FrequenceDepense }[] = [
@@ -220,7 +228,8 @@ export class MoisTypeComponent implements OnInit, OnDestroy {
   constructor(
     private moisTypeService: MoisTypeService,
     private messageService: MessageService,
-    private translateService: TranslateService
+    private translateService: TranslateService,
+    private categoriesService: CategoriesService
   ) {}
 
   ngOnInit(): void {
@@ -230,6 +239,7 @@ export class MoisTypeComponent implements OnInit, OnDestroy {
       .subscribe(() => this.sauvegarderSilencieusement());
 
     this.chargerMoisType();
+    this.chargerCategories();
   }
 
   ngOnDestroy(): void {
@@ -255,6 +265,13 @@ export class MoisTypeComponent implements OnInit, OnDestroy {
             montantMensuel: this.moisTypeService.calculerMontantMensuel(d),
           }));
         }
+        // Migration : si le champ salaires est absent et revenus > 0, créer une ligne de salaire
+        if (!local.salaires && (local.revenus ?? 0) > 0) {
+          local.salaires = [{ id: 1, libelle: 'Salaire principal', montant: local.revenus }];
+        } else if (!local.salaires) {
+          // Initialiser avec une ligne vide pour les nouveaux mois types sans revenus migrés
+          local.salaires = [{ id: Date.now(), libelle: 'Salaire principal', montant: 0 }];
+        }
         this.moisType.set(local);
         // Essayer de charger la projection depuis l'API
         this.chargerProjectionApi();
@@ -270,6 +287,12 @@ export class MoisTypeComponent implements OnInit, OnDestroy {
             ...d,
             montantMensuel: this.moisTypeService.calculerMontantMensuel(d),
           }));
+        }
+        // Migration : si le champ salaires est absent et revenus > 0, créer une ligne de salaire
+        if (!mt.salaires && (mt.revenus ?? 0) > 0) {
+          mt.salaires = [{ id: 1, libelle: 'Salaire principal', montant: mt.revenus }];
+        } else if (!mt.salaires) {
+          mt.salaires = [{ id: Date.now(), libelle: 'Salaire principal', montant: 0 }];
         }
         this.moisType.set(mt);
         this.moisTypeService.saveToStorage(mt);
@@ -295,6 +318,30 @@ export class MoisTypeComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Charge les catégories depuis l'API et met à jour le signal `categorieOptions`.
+   * Si l'API est indisponible ou retourne une liste vide, utilise les catégories par défaut.
+   */
+  private async chargerCategories(): Promise<void> {
+    try {
+      const categories: CategoryResponse[] = await this.categoriesService.getAllCategories();
+      if (categories && categories.length > 0) {
+        // Transformer les réponses API en options de sélecteur
+        const options = categories
+          .filter((cat) => cat.name)
+          .map((cat) => ({ label: cat.name!, value: cat.name! }));
+        this.categorieOptions.set(options);
+      } else {
+        // Liste vide : fallback sur les catégories par défaut
+        this.categorieOptions.set(this.categoriesParDefaut);
+      }
+    } catch (error) {
+      // Erreur API : fallback silencieux sur les catégories par défaut
+      console.warn('MoisType: impossible de charger les catégories depuis l\'API, utilisation des catégories par défaut:', error);
+      this.categorieOptions.set(this.categoriesParDefaut);
+    }
+  }
+
   // ============================================================
   // Création du mois type
   // ============================================================
@@ -306,6 +353,8 @@ export class MoisTypeComponent implements OnInit, OnDestroy {
       annee: 2026,
       revenus: 0,
       autresRevenus: 0,
+      // Initialisation avec une ligne de salaire par défaut
+      salaires: [{ id: Date.now(), libelle: 'Salaire principal', montant: 0 }],
       depenses: [],
     };
     this.moisType.set(nouveau);
@@ -347,6 +396,67 @@ export class MoisTypeComponent implements OnInit, OnDestroy {
   /** Appelé lors de la modification des revenus ou autres revenus */
   onRevenusChange(): void {
     this.declencherSauvegarde();
+  }
+
+  /**
+   * Ajoute une nouvelle ligne de salaire vide dans la liste des salaires.
+   * L'identifiant est basé sur Date.now() pour garantir l'unicité.
+   */
+  ajouterSalaire(): void {
+    const mt = this.moisType();
+    if (!mt) return;
+
+    const nouvelleLigne: SalaireEntry = {
+      id: Date.now(),
+      libelle: '',
+      montant: 0,
+    };
+
+    const updated: MoisType = {
+      ...mt,
+      salaires: [...(mt.salaires ?? []), nouvelleLigne],
+    };
+    this.moisType.set(updated);
+    this.declencherSauvegarde();
+  }
+
+  /**
+   * Supprime la ligne de salaire correspondant à l'identifiant donné.
+   * Ne supprime pas si c'est la dernière ligne (au moins 1 ligne requise).
+   */
+  supprimerSalaire(id: number): void {
+    const mt = this.moisType();
+    if (!mt) return;
+
+    const salairesActuels = mt.salaires ?? [];
+    // Garantir au moins une ligne de salaire
+    if (salairesActuels.length <= 1) return;
+
+    const updated: MoisType = {
+      ...mt,
+      salaires: salairesActuels.filter((s) => s.id !== id),
+    };
+    this.moisType.set(updated);
+    this.declencherSauvegarde();
+  }
+
+  /**
+   * Appelé lors de la modification d'une ligne de salaire (libellé ou montant).
+   * Déclenche la sauvegarde automatique.
+   */
+  onSalaireChange(): void {
+    this.declencherSauvegarde();
+  }
+
+  /**
+   * Calcule la somme totale des salaires + autres revenus pour l'affichage.
+   * Utilisé dans le template pour afficher le total des revenus.
+   */
+  getTotalRevenus(): number {
+    const mt = this.moisType();
+    if (!mt) return 0;
+    const sommeSalaires = (mt.salaires ?? []).reduce((sum, s) => sum + (s.montant ?? 0), 0);
+    return sommeSalaires + (mt.autresRevenus ?? 0);
   }
 
   // ============================================================
@@ -451,24 +561,20 @@ export class MoisTypeComponent implements OnInit, OnDestroy {
   // Helpers d'affichage
   // ============================================================
 
-  /** Retourne le libellé d'une catégorie */
-  getCategorieLabel(cat: CategorieDepense): string {
-    return this.categorieOptions.find((o) => o.value === cat)?.label ?? cat;
+  /**
+   * Retourne le libellé d'une catégorie en cherchant dans les options chargées dynamiquement.
+   * Si la catégorie n'est pas trouvée, retourne la valeur brute.
+   */
+  getCategorieLabel(cat: string): string {
+    return this.categorieOptions().find((o) => o.value === cat)?.label ?? cat;
   }
 
-  /** Retourne la couleur CSS du badge de catégorie */
-  getCategorieBadgeClass(cat: CategorieDepense): string {
-    const map: Record<CategorieDepense, string> = {
-      LOGEMENT: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-      TRANSPORT: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
-      ALIMENTATION: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
-      SANTE: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
-      LOISIRS: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
-      ABONNEMENTS: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300',
-      EPARGNE: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300',
-      AUTRE: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
-    };
-    return map[cat] ?? map['AUTRE'];
+  /**
+   * Retourne la classe CSS du badge de catégorie.
+   * Couleur générique pour toutes les catégories dynamiques (chargées depuis l'API).
+   */
+  getCategorieBadgeClass(_cat: string): string {
+    return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300';
   }
 
   /** Retourne la classe CSS pour la valeur d'épargne (vert/rouge) */

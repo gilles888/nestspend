@@ -252,14 +252,30 @@ export class MoisTypeService {
   }
 
   /**
+   * Calcule les revenus mensuels totaux d'un mois type.
+   * Si `moisType.salaires` est défini et non vide, on additionne les montants des salaires + autresRevenus.
+   * Sinon, fallback sur `revenus + autresRevenus` pour rétrocompatibilité.
+   */
+  private calculerRevenusMensuel(moisType: MoisType): number {
+    const autresRevenus = moisType.autresRevenus ?? 0;
+    if (moisType.salaires && moisType.salaires.length > 0) {
+      // Somme des lignes de salaires + autres revenus
+      const sommeSalaires = moisType.salaires.reduce((sum, s) => sum + (s.montant ?? 0), 0);
+      return sommeSalaires + autresRevenus;
+    }
+    // Fallback rétrocompatibilité
+    return (moisType.revenus ?? 0) + autresRevenus;
+  }
+
+  /**
    * Calcule le résumé financier en temps réel à partir d'un mois type.
    * Prend en compte uniquement les dépenses actives.
    */
   calculerResume(moisType: MoisType): ResumeFinancier {
     const depenses = moisType.depenses ?? [];
 
-    // Revenus totaux
-    const revenusMensuel = (moisType.revenus ?? 0) + (moisType.autresRevenus ?? 0);
+    // Revenus totaux (supporte plusieurs salaires ou fallback champ unique)
+    const revenusMensuel = this.calculerRevenusMensuel(moisType);
 
     // Dépenses fixes actives ramenées au mois
     const depensesFixesMensuel = depenses
@@ -308,7 +324,8 @@ export class MoisTypeService {
    */
   genererProjectionLocale(moisType: MoisType, annee: number): ProjectionAnnuelle {
     const depenses = moisType.depenses ?? [];
-    const revenusMensuel = (moisType.revenus ?? 0) + (moisType.autresRevenus ?? 0);
+    // Revenus mensuels : supporte plusieurs salaires ou fallback champ unique
+    const revenusMensuel = this.calculerRevenusMensuel(moisType);
 
     const NOMS_MOIS = [
       'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',

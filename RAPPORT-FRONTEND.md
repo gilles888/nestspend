@@ -242,3 +242,122 @@ Corrections de bugs :
 | Tableur dépenses multi-mois | Existant/complet | `/expense-table` |
 | Projections événements récurrents | Existant/complet | `/projections` |
 | Bug totalExpenseCents corrigé | Corrigé | services |
+
+---
+
+---
+
+# Rapport Frontend — Correctifs composant "Mon Mois Type"
+
+Date : 2026-03-23
+
+## Contexte
+
+Trois correctifs ont été appliqués au composant Angular "Mon Mois Type" (`/web/nestspend-web/src/app/pages/mois-type/`), sans casser aucune fonctionnalité existante. Le build Angular passe en zéro erreur après toutes les modifications.
+
+---
+
+## Correctif 1 — Plusieurs lignes de salaires dans la section Revenus
+
+### Problème
+
+La section Revenus ne proposait qu'un seul champ `revenus` (salaire principal) et un champ `autresRevenus`. Il était impossible d'indiquer plusieurs sources de revenus salariaux (ex: salaire + revenu freelance).
+
+### Fichiers modifiés
+
+**`/web/nestspend-web/src/app/core/models/mois-type.model.ts`**
+
+- Ajout de l'interface `SalaireEntry` : `{ id: number; libelle: string; montant: number; }`
+- Ajout du champ `salaires?: SalaireEntry[]` dans `MoisType`
+- Le champ `revenus` est conservé avec une annotation `@deprecated` pour la rétrocompatibilité
+- Le type de `DepenseType.categorie` passe de `CategorieDepense` à `string` pour accepter les catégories dynamiques (cf. correctif 3)
+
+**`/web/nestspend-web/src/app/core/services/mois-type.service.ts`**
+
+- Ajout d'une méthode privée `calculerRevenusMensuel(moisType)` : si `salaires` est présent et non vide, additionne les montants + `autresRevenus` ; sinon fallback sur `revenus + autresRevenus`
+- `calculerResume()` et `genererProjectionLocale()` utilisent maintenant cette méthode partagée au lieu d'inline `revenus + autresRevenus`
+
+**`/web/nestspend-web/src/app/pages/mois-type/mois-type.ts`**
+
+- Import de `SalaireEntry` depuis le modèle
+- `creerMoisType()` initialise `salaires: [{ id: Date.now(), libelle: 'Salaire principal', montant: 0 }]`
+- `chargerMoisType()` migre les données existantes : si `salaires` est absent et `revenus > 0`, crée automatiquement `[{ id: 1, libelle: 'Salaire principal', montant: revenus }]`
+- Nouvelles méthodes :
+  - `ajouterSalaire()` — ajoute une ligne vide
+  - `supprimerSalaire(id)` — retire la ligne (protegé : au moins 1 ligne conservée)
+  - `onSalaireChange()` — déclenche la sauvegarde automatique
+  - `getTotalRevenus()` — calcule la somme des salaires + autresRevenus pour l'affichage
+
+**`/web/nestspend-web/src/app/pages/mois-type/mois-type.html`**
+
+- La section Revenus est remplacée par une liste dynamique `@for (sal of moisType()!.salaires; track sal.id)`
+- Chaque ligne comporte un input texte (libellé, masqué pour la ligne unique "Salaire principal") et un `p-inputNumber` (montant)
+- Bouton supprimer (icône `pi-trash`) visible uniquement si plus d'une ligne
+- Bouton "Ajouter un salaire" dans l'en-tête de la section
+- Le champ "Autres revenus" est conservé sous un séparateur
+- Affichage du total revenus (salaires + autresRevenus) avec badge vert
+
+---
+
+## Correctif 2 — Dropdowns ne s'affichent pas au-dessus du card
+
+### Problème
+
+Les composants `p-select` (Catégorie et Fréquence) dans les tableaux de dépenses fixes et variables sont imbriqués dans un `<div class="overflow-x-auto">`. Le contexte de défilement crée un contexte de stacking qui coupe l'overlay du dropdown.
+
+### Solution
+
+Ajout de `appendTo="body"` sur les 4 `p-select` concernés dans le template `mois-type.html` :
+
+- Tableau dépenses fixes — colonne Catégorie (mode édition)
+- Tableau dépenses fixes — colonne Fréquence (mode édition)
+- Tableau dépenses variables — colonne Catégorie (mode édition)
+- Tableau dépenses variables — colonne Fréquence (mode édition)
+
+Avec `appendTo="body"`, PrimeNG téléporte l'overlay en dehors du DOM de la table, ce qui évite le clipping.
+
+---
+
+## Correctif 3 — Catégories chargées dynamiquement depuis l'API
+
+### Problème
+
+Les options de catégories dans les sélecteurs étaient hardcodées avec des valeurs en majuscules (`'LOGEMENT'`, `'TRANSPORT'`, etc.), sans connexion à l'API. L'onglet Catégories de l'application permet pourtant à l'utilisateur de créer ses propres catégories.
+
+### Fichiers modifiés
+
+**`/web/nestspend-web/src/app/pages/mois-type/mois-type.ts`**
+
+- Import de `CategoriesService` depuis `../../core/api/services/categories.service`
+- Import de `CategoryResponse` depuis `../../core/api/models/category-response`
+- `readonly categorieOptions` (tableau statique) remplacé par `categorieOptions = signal<{ label: string; value: string }[]>(...)`
+- Définition de `private readonly categoriesParDefaut` comme liste de fallback
+- Ajout de la méthode privée `chargerCategories()` :
+  - Appelle `categoriesService.getAllCategories()`
+  - Mappe les résultats en `{ label: cat.name!, value: cat.name! }`
+  - En cas d'erreur ou de liste vide : utilise `categoriesParDefaut`
+- `chargerCategories()` est appelé dans `ngOnInit()`
+- `CategoriesService` injecté dans le constructeur
+- `getCategorieLabel(cat)` lit depuis `categorieOptions()` (signal)
+- `getCategorieBadgeClass()` retourne une couleur générique pour toutes les catégories
+
+**`/web/nestspend-web/src/app/pages/mois-type/mois-type.html`**
+
+- Les 4 `p-select` de catégorie utilisent maintenant `[options]="categorieOptions()"` (appel du signal)
+
+**`/web/nestspend-web/src/app/core/models/mois-type.model.ts`**
+
+- `DepenseType.categorie` passe du type `CategorieDepense` à `string` pour accepter les noms dynamiques
+- `CategorieDepense` conservé avec `| string` pour la rétrocompatibilité
+
+---
+
+## Bilan technique
+
+| Point | Etat |
+|---|---|
+| Build Angular | Passe sans erreur |
+| Rétrocompatibilité données localStorage | Assurée (migration automatique) |
+| Fonctionnalités existantes (dépenses, projection, graphique) | Intactes |
+| Sauvegarde automatique (debounce 800ms) | Intacte |
+| Fallback API indisponible | Inchangé (localStorage) |

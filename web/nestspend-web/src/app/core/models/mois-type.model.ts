@@ -3,7 +3,11 @@
  * Représente les dépenses types, les mois de référence et les projections annuelles.
  */
 
-/** Catégories possibles pour une dépense type */
+/**
+ * Catégories possibles pour une dépense type.
+ * @deprecated Remplacé par string pour accepter les catégories dynamiques chargées depuis l'API.
+ * Conservé pour rétrocompatibilité.
+ */
 export type CategorieDepense =
   | 'LOGEMENT'
   | 'TRANSPORT'
@@ -12,7 +16,21 @@ export type CategorieDepense =
   | 'LOISIRS'
   | 'ABONNEMENTS'
   | 'EPARGNE'
-  | 'AUTRE';
+  | 'AUTRE'
+  | string; // Accepte les catégories dynamiques chargées depuis l'API
+
+/**
+ * Représente une ligne de salaire dans la section Revenus.
+ * Permet d'avoir plusieurs sources de revenus salariaux (ex: salaire principal + freelance).
+ */
+export interface SalaireEntry {
+  /** Identifiant unique de la ligne (basé sur Date.now()) */
+  id: number;
+  /** Libellé de la source de revenu (ex: "Salaire principal", "Freelance") */
+  libelle: string;
+  /** Montant mensuel net en euros */
+  montant: number;
+}
 
 /** Type de dépense : fixe (montant constant) ou variable (montant approximatif) */
 export type TypeDepense = 'FIXE' | 'VARIABLE';
@@ -31,8 +49,11 @@ export interface DepenseType {
   nom: string;
   /** Montant brut de la dépense (selon la fréquence) */
   montant: number;
-  /** Catégorie de la dépense */
-  categorie: CategorieDepense;
+  /**
+   * Catégorie de la dépense.
+   * Typé string pour accepter les catégories dynamiques chargées depuis l'API.
+   */
+  categorie: string;
   /** Type de dépense : FIXE ou VARIABLE */
   typeDepense: TypeDepense;
   /** Fréquence de la dépense */
@@ -54,10 +75,20 @@ export interface MoisType {
   nom: string;
   /** Année de référence */
   annee: number;
-  /** Salaire net mensuel en euros */
+  /**
+   * Salaire net mensuel en euros.
+   * @deprecated Utiliser `salaires` à la place pour gérer plusieurs lignes de salaire.
+   * Conservé pour rétrocompatibilité avec les données existantes.
+   */
   revenus: number;
-  /** Autres revenus mensuels en euros (loyer perçu, freelance, etc.) */
+  /** Autres revenus mensuels en euros (primes, locatif, etc.) */
   autresRevenus: number;
+  /**
+   * Liste des lignes de salaires/revenus principaux.
+   * Remplace le champ `revenus` unique. Si présent et non vide,
+   * la somme de ces montants est utilisée comme revenus salariaux.
+   */
+  salaires?: SalaireEntry[];
   /** Liste des dépenses types associées */
   depenses?: DepenseType[];
 }

@@ -64,33 +64,75 @@
 
           <!-- Section Revenus -->
           <div class="bg-surface dark:bg-dark-surface p-6 rounded-2xl shadow-card dark:shadow-dark-card border border-border/50 dark:border-dark-border/50">
-            <div class="flex items-center gap-3 mb-5">
-              <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 text-green-600">
-                <i class="pi pi-wallet text-lg"></i>
+            <div class="flex items-center justify-between mb-5">
+              <div class="flex items-center gap-3">
+                <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 text-green-600">
+                  <i class="pi pi-wallet text-lg"></i>
+                </div>
+                <h2 class="text-lg font-semibold text-text-main dark:text-dark-text-main">
+                  Revenus mensuels
+                </h2>
               </div>
-              <h2 class="text-lg font-semibold text-text-main dark:text-dark-text-main">
-                Revenus mensuels
-              </h2>
+              <!-- Bouton ajouter un salaire -->
+              <p-button
+                icon="pi pi-plus"
+                label="Ajouter un salaire"
+                severity="secondary"
+                [text]="true"
+                [rounded]="false"
+                size="small"
+                pTooltip="Ajouter une ligne de salaire ou de revenu"
+                (onClick)="ajouterSalaire()"
+              ></p-button>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <!-- Revenus principaux -->
-              <div>
-                <label class="block text-sm font-medium text-text-muted dark:text-dark-text-muted mb-2">
-                  Salaire / Revenus principaux (€)
-                </label>
-                <p-inputNumber
-                  [(ngModel)]="moisType()!.revenus"
-                  (ngModelChange)="onRevenusChange()"
-                  mode="decimal"
-                  [minFractionDigits]="2"
-                  [maxFractionDigits]="2"
-                  [min]="0"
-                  styleClass="w-full"
-                  inputStyleClass="w-full"
-                ></p-inputNumber>
-              </div>
-              <!-- Autres revenus -->
+            <!-- Liste dynamique des lignes de salaires -->
+            <div class="space-y-3 mb-4">
+              @for (sal of moisType()!.salaires; track sal.id) {
+                <div class="flex items-center gap-3">
+                  <!-- Libellé de la source de revenu -->
+                  <div class="flex-1">
+                    @if ((moisType()!.salaires?.length ?? 0) === 1 && sal.libelle === 'Salaire principal') {
+                      <label class="block text-sm font-medium text-text-muted dark:text-dark-text-muted mb-1">
+                        Salaire / Revenus principaux (€)
+                      </label>
+                    } @else {
+                      <input
+                        type="text"
+                        [(ngModel)]="sal.libelle"
+                        (ngModelChange)="onSalaireChange()"
+                        placeholder="Ex: Salaire, Freelance..."
+                        class="w-full px-3 py-2 rounded-lg border border-border dark:border-dark-border bg-surface dark:bg-dark-surface text-text-main dark:text-dark-text-main text-sm mb-1"
+                      />
+                    }
+                    <p-inputNumber
+                      [(ngModel)]="sal.montant"
+                      (ngModelChange)="onSalaireChange()"
+                      mode="decimal"
+                      [minFractionDigits]="2"
+                      [maxFractionDigits]="2"
+                      [min]="0"
+                      styleClass="w-full"
+                      inputStyleClass="w-full"
+                    ></p-inputNumber>
+                  </div>
+                  <!-- Bouton supprimer (visible seulement si plus d'une ligne) -->
+                  @if ((moisType()!.salaires?.length ?? 0) > 1) {
+                    <p-button
+                      icon="pi pi-trash"
+                      severity="danger"
+                      [text]="true"
+                      [rounded]="true"
+                      pTooltip="Supprimer cette ligne"
+                      (onClick)="supprimerSalaire(sal.id)"
+                    ></p-button>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Autres revenus (primes, locatif, etc.) -->
+            <div class="border-t border-border/30 dark:border-dark-border/30 pt-4 space-y-3">
               <div>
                 <label class="block text-sm font-medium text-text-muted dark:text-dark-text-muted mb-2">
                   Autres revenus (primes, locatif, etc.) (€)
@@ -105,6 +147,15 @@
                   styleClass="w-full"
                   inputStyleClass="w-full"
                 ></p-inputNumber>
+              </div>
+              <!-- Total des revenus -->
+              <div class="flex justify-between items-center bg-green-50 dark:bg-green-900/20 px-4 py-2 rounded-lg">
+                <span class="text-sm font-medium text-text-muted dark:text-dark-text-muted">
+                  Total revenus mensuels
+                </span>
+                <span class="text-base font-bold text-green-600 dark:text-green-400">
+                  {{ getTotalRevenus() | currency:'EUR':'symbol':'1.2-2' }}
+                </span>
               </div>
             </div>
           </div>
@@ -168,12 +219,14 @@
                                    placeholder="Nom de la dépense" />
                           </td>
                           <td class="py-1 px-2">
+                            <!-- appendTo="body" pour éviter le clipping dans overflow-x-auto -->
                             <p-select
-                              [options]="categorieOptions"
+                              [options]="categorieOptions()"
                               [(ngModel)]="depense.categorie"
                               (ngModelChange)="onDepenseChange(depense)"
                               optionLabel="label"
                               optionValue="value"
+                              appendTo="body"
                               styleClass="w-full text-sm"
                             ></p-select>
                           </td>
@@ -190,12 +243,14 @@
                             ></p-inputNumber>
                           </td>
                           <td class="py-1 px-2">
+                            <!-- appendTo="body" pour éviter le clipping dans overflow-x-auto -->
                             <p-select
                               [options]="frequenceOptions"
                               [(ngModel)]="depense.frequence"
                               (ngModelChange)="onDepenseChange(depense)"
                               optionLabel="label"
                               optionValue="value"
+                              appendTo="body"
                               styleClass="w-full text-sm"
                             ></p-select>
                           </td>
@@ -314,12 +369,14 @@
                                    placeholder="Nom de la dépense" />
                           </td>
                           <td class="py-1 px-2">
+                            <!-- appendTo="body" pour éviter le clipping dans overflow-x-auto -->
                             <p-select
-                              [options]="categorieOptions"
+                              [options]="categorieOptions()"
                               [(ngModel)]="depense.categorie"
                               (ngModelChange)="onDepenseChange(depense)"
                               optionLabel="label"
                               optionValue="value"
+                              appendTo="body"
                               styleClass="w-full text-sm"
                             ></p-select>
                           </td>
@@ -336,12 +393,14 @@
                             ></p-inputNumber>
                           </td>
                           <td class="py-1 px-2">
+                            <!-- appendTo="body" pour éviter le clipping dans overflow-x-auto -->
                             <p-select
                               [options]="frequenceOptions"
                               [(ngModel)]="depense.frequence"
                               (ngModelChange)="onDepenseChange(depense)"
                               optionLabel="label"
                               optionValue="value"
+                              appendTo="body"
                               styleClass="w-full text-sm"
                             ></p-select>
                           </td>
